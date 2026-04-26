@@ -1,0 +1,26 @@
+# =============================================
+# Inception - 42 Project .gitignore
+# =============================================
+
+# --- Secrets & credentials ---
+secrets/
+srcs/.env
+
+# --- OS generated files ---
+.DS_Store
+Thumbs.db
+
+# --- Editor/IDE files ---
+.vscode/
+
+# --- Docker data ---
+data/
+
+# --- Logs ---
+*.log
+
+# --- SSL certificates ---
+*.pem
+*.key
+*.crt
+*.csr
