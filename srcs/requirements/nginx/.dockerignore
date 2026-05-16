@@ -1,23 +1,22 @@
 # **************************************************************************** #
 #                                                                              #
 #                                                         :::      ::::::::    #
-#    entrypoint.sh                                      :+:      :+:    :+:    #
+#    Dockerfile                                         :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
 #    By: ghenriqu <ghenriqu@student.42porto.com>    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
-#    Created: 2026/05/10 18:49:10 by ghenriqu          #+#    #+#              #
-#    Updated: 2026/05/16 21:15:37 by ghenriqu         ###   ########.fr        #
+#    Created: 2026/05/10 18:42:07 by ghenriqu          #+#    #+#              #
+#    Updated: 2026/05/16 21:15:09 by ghenriqu         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
-set -e
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
 
-if [ ! -f /etc/nginx/ssl/server.crt ] || [ ! -f /etc/nginx/ssl/server.key ]; then
-    echo "ERROR: TLS material missing in /etc/nginx/ssl/" >&2
-    echo "       Expected: server.crt and server.key"     >&2
-    exit 1
-fi
+.git
+.gitignore
+.gitkeep
 
-echo "TLS material OK. Starting nginx..."
-
-exec nginx -g 'daemon off;'
+*.md
