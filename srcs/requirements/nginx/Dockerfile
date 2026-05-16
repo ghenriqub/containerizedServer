@@ -6,11 +6,11 @@
 #    By: ghenriqu <ghenriqu@student.42porto.com>    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/05/10 18:42:07 by ghenriqu          #+#    #+#              #
-#    Updated: 2026/05/10 19:06:36 by ghenriqu         ###   ########.fr        #
+#    Updated: 2026/05/16 17:44:21 by ghenriqu         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
-FROM debian:bullseye
+FROM debian:bookworm
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     nginx \
