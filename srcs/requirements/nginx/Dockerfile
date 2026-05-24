@@ -6,7 +6,7 @@
 #    By: ghenriqu <ghenriqu@student.42porto.com>    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/05/16 21:15:14 by ghenriqu          #+#    #+#              #
-#    Updated: 2026/05/16 21:15:52 by ghenriqu         ###   ########.fr        #
+#    Updated: 2026/05/17 13:44:34 by ghenriqu         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -33,4 +33,4 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 443
 
-ENTRYPOINT ["entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
