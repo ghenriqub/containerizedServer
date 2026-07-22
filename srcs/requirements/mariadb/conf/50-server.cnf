@@ -1,25 +1,21 @@
 # **************************************************************************** #
 #                                                                              #
 #                                                         :::      ::::::::    #
-#    Dockerfile                                         :+:      :+:    :+:    #
+#    50-server.cnf                                      :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
 #    By: ghenriqu <ghenriqu@student.42porto.com>    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
-#    Created: 2026/07/22 22:50:55 by ghenriqu          #+#    #+#              #
-#    Updated: 2026/07/22 22:51:15 by ghenriqu         ###   ########.fr        #
+#    Created: 2026/07/22 22:54:03 by ghenriqu          #+#    #+#              #
+#    Updated: 2026/07/22 22:54:20 by ghenriqu         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
-FROM debian:bookworm
+[mysqld]
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends mariadb-server && \
-    rm -rf /var/lib/apt/lists/*
-    
-COPY conf/50-server.cnf /etc/mysql/mariadb.conf.d/50-server.cnf
-COPY tools/init.sh /usr/local/bin/init.sh
-RUN chmod +x /usr/local/bin/init.sh
+bind-address = 0.0.0.0
 
-EXPOSE 3306
+datadir = /var/lib/mysql
 
-ENTRYPOINT ["init.sh"]
+socket = /run/mysqld/mysqld.sock
+
+port = 3306
