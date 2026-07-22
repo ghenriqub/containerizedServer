@@ -6,11 +6,13 @@
 #    By: ghenriqu <ghenriqu@student.42porto.com>    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/05/16 21:15:14 by ghenriqu          #+#    #+#              #
-#    Updated: 2026/05/17 13:44:34 by ghenriqu         ###   ########.fr        #
+#    Updated: 2026/07/22 22:35:57 by ghenriqu         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 FROM debian:bookworm
+
+ARG DOMAIN_NAME
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     nginx \
@@ -24,7 +26,8 @@ RUN openssl req -x509 -nodes \
     -newkey rsa:2048 \
     -keyout /etc/nginx/ssl/server.key \
     -out /etc/nginx/ssl/server.crt \
-    -subj "/C=PT/ST=Porto/L=Porto/O=42Porto/CN=ghenriqu.42.fr"
+    -subj "/C=PT/ST=Porto/L=Porto/O=42Porto/CN=${DOMAIN_NAME}" \
+    -addext "subjectAltName=DNS:${DOMAIN_NAME},DNS:adminer.${DOMAIN_NAME}"
 
 COPY conf/nginx.conf /etc/nginx/nginx.conf
 COPY tools/entrypoint.sh /usr/local/bin/entrypoint.sh

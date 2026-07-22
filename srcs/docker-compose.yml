@@ -1,0 +1,168 @@
+# **************************************************************************** #
+#                                                                              #
+#                                                         :::      ::::::::    #
+#    Makefile                                           :+:      :+:    :+:    #
+#                                                     +:+ +:+         +:+      #
+#    By: ghenriqu <ghenriqu@student.42porto.com>    +#+  +:+       +#+         #
+#                                                 +#+#+#+#+#+   +#+            #
+#    Created: 2026/07/22 22:27:32 by ghenriqu          #+#    #+#              #
+#    Updated: 2026/07/22 22:27:33 by ghenriqu         ###   ########.fr        #
+#                                                                              #
+# **************************************************************************** #
+
+services:
+
+  # ========================================================================== #
+  #  MariaDB - database backend                                                #
+  # ========================================================================== #
+  mariadb:
+    build:
+      context: ./requirements/mariadb
+    image: mariadb:inception
+    container_name: mariadb
+    restart: always
+    env_file: .env
+    networks:
+      - inception
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    secrets:
+      - db_password
+      - db_root_password
+    expose:
+      - "3306"
+
+  # ========================================================================== #
+  #  WordPress + php-fpm - application layer                                   #
+  # ========================================================================== #
+  wordpress:
+    build:
+      context: ./requirements/wordpress
+    image: wordpress:inception
+    container_name: wordpress
+    restart: always
+    env_file: .env
+    depends_on:
+      - mariadb
+    networks:
+      - inception
+    volumes:
+      - wordpress_data:/var/www/html
+    secrets:
+      - db_password
+      - credentials
+      - wp_user_password
+    expose:
+      - "9000"
+
+  # ========================================================================== #
+  #  NGINX - TLS termination, sole entrypoint of the infrastructure            #
+  # ========================================================================== #
+  nginx:
+    build:
+      context: ./requirements/nginx
+      args:
+        DOMAIN_NAME: ${DOMAIN_NAME}
+    image: nginx:inception
+    container_name: nginx
+    restart: always
+    depends_on:
+      - wordpress
+    networks:
+      - inception
+    volumes:
+      - wordpress_data:/var/www/html:ro
+    ports:
+      - "443:443"
+
+  # ========================================================================== #
+  #  BONUS                                                                     #
+  # ========================================================================== #
+
+  # ---- Redis object cache --------------------------------------------------
+  redis:
+    build:
+      context: ./requirements/bonus/redis
+    image: redis:inception
+    container_name: redis
+    profiles: [bonus]
+    restart: always
+    networks:
+      - inception
+    expose:
+      - "6379"
+
+  # ---- Adminer - web database client ---------------------------------------
+  adminer:
+    build:
+      context: ./requirements/bonus/adminer
+    image: adminer:inception
+    container_name: adminer
+    profiles: [bonus]
+    restart: always
+    depends_on:
+      - mariadb
+    networks:
+      - inception
+    expose:
+      - "9000"
+
+  # ---- Uptime Kuma - service monitoring ------------------------------------
+  uptime-kuma:
+    build:
+      context: ./requirements/bonus/uptime-kuma
+    image: uptime-kuma:inception
+    container_name: uptime-kuma
+    profiles: [bonus]
+    restart: always
+    networks:
+      - inception
+    volumes:
+      - uptime_kuma_data:/app/data
+    ports:
+      - "3001:3001"
+
+# ============================================================================ #
+#  Network                                                                     #
+# ============================================================================ #
+networks:
+  inception:
+    driver: bridge
+
+# ============================================================================ #
+#  Named volumes                                                               #
+# ============================================================================ #
+volumes:
+  mariadb_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_PATH}/mariadb
+
+  wordpress_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_PATH}/wordpress
+
+  uptime_kuma_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_PATH}/uptime-kuma
+
+# ============================================================================ #
+#  Secrets                                                                     #
+# ============================================================================ #
+secrets:
+  db_root_password:
+    file: ../secrets/db_root_password.txt
+  db_password:
+    file: ../secrets/db_password.txt
+  credentials:
+    file: ../secrets/credentials.txt
+  wp_user_password:
+    file: ../secrets/wp_user_password.txt
