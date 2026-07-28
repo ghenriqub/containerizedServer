@@ -31,4 +31,4 @@ WORKDIR /var/www/html
 
 EXPOSE 9000
 
-ENTRYPOINT ["init.sh"]
+ENTRYPOINT ["/usr/local/bin/init.sh"]
