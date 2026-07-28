@@ -16,6 +16,10 @@ set -e
 
 mkdir -p /run/php
 
+DB_PASSWORD="$(cat /run/secrets/db_password)"
+WP_ADMIN_PASSWORD="$(cat /run/secrets/credentials)"
+WP_USER_PASSWORD="$(cat /run/secrets/wp_user_password)"
+
 echo "Waiting for MariaDB to be ready..."
 for i in $(seq 1 30); do
     if mariadb-admin ping -h mariadb -u"${MYSQL_USER}" -p"${DB_PASSWORD}" --silent 2>/dev/null; then
@@ -47,7 +51,7 @@ if [ ! -f /var/www/html/wp-config.php ]; then
 
     wp user create --allow-root \
         "${WP_USER}" "${WP_USER_EMAIL}" \
-        --role=subscriber \
+        --role=editor \
         --user_pass="${WP_USER_PASSWORD}"
 
     echo "WordPress installation complete."
@@ -55,18 +59,17 @@ else
     echo "WordPress already installed, skipping."
 fi
 
-    #---- bonus-------    
-    wp config set WP_REDIS_HOST redis --allow-root
-    wp config set WP_REDIS_PORT 6379 --allow-root --raw
-    
-    wp plugin install redis-cache --activate --allow-root
-    if php -r 'try { exit((new Redis())->connect("redis", 6379, 2) ? 0 : 1); } catch (Exception $e) { exit(1); }' 2>/dev/null; then
-        wp redis enable --allow-root
+#---- bonus-------    
+if getent hosts redis >/dev/null 2>&1; then
+    wp config set WP_REDIS_HOST redis --allow-root || true
+    wp config set WP_REDIS_PORT 6379 --raw --allow-root || true
+    wp plugin is-installed redis-cache --allow-root \
+        || wp plugin install redis-cache --activate --allow-root || true
+    if php -r 'try { exit((new Redis())->connect("redis",6379,2)?0:1); } catch (Throwable $e) { exit(1); }' 2>/dev/null; then
+        wp redis enable --allow-root || true
         echo "Redis cache enabled."
-    else
-        echo "Redis not reachable, skipping cache (site uses DB directly)."
     fi
-    # --------
+fi
 
 chown -R www-data:www-data /var/www/html
 
