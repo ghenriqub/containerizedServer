@@ -25,7 +25,8 @@ SECRETS_DIR := secrets
 SECRETS     := $(SECRETS_DIR)/db_root_password.txt \
                $(SECRETS_DIR)/db_password.txt \
                $(SECRETS_DIR)/credentials.txt \
-               $(SECRETS_DIR)/wp_user_password.txt
+               $(SECRETS_DIR)/wp_user_password.txt \
+               $(SECRETS_DIR)/redis_password.txt
 
 all: check-env dirs secrets hosts up
 

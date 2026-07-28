@@ -61,13 +61,36 @@ fi
 
 #---- bonus-------    
 if getent hosts redis >/dev/null 2>&1; then
-    wp config set WP_REDIS_HOST redis --allow-root || true
-    wp config set WP_REDIS_PORT 6379 --raw --allow-root || true
-    wp plugin is-installed redis-cache --allow-root \
-        || wp plugin install redis-cache --activate --allow-root || true
-    if php -r 'try { exit((new Redis())->connect("redis",6379,2)?0:1); } catch (Throwable $e) { exit(1); }' 2>/dev/null; then
+    REDIS_PASSWORD=""
+    if [ -s /run/secrets/redis_password ]; then
+        REDIS_PASSWORD="$(cat /run/secrets/redis_password)"
+    fi
+
+    wp config set WP_REDIS_HOST redis --allow-root
+    wp config set WP_REDIS_PORT 6379 --raw --allow-root
+    wp config set WP_REDIS_DATABASE 0 --raw --allow-root
+    if [ -n "${REDIS_PASSWORD}" ]; then
+        wp config set WP_REDIS_PASSWORD "${REDIS_PASSWORD}" --allow-root
+    fi
+
+    if ! wp plugin is-installed redis-cache --allow-root; then
+        wp plugin install redis-cache --activate --allow-root || \
+            echo "[wordpress] WARNING: redis-cache plugin install failed." >&2
+    fi
+
+    if REDIS_PASSWORD="${REDIS_PASSWORD}" php -r '
+        try {
+            $r = new Redis();
+            $r->connect("redis", 6379, 2);
+            $pw = getenv("REDIS_PASSWORD");
+            if ($pw !== false && $pw !== "") { $r->auth($pw); }
+            exit($r->ping() ? 0 : 1);
+        } catch (Throwable $e) { exit(1); }
+    ' 2>/dev/null; then
         wp redis enable --allow-root || true
-        echo "Redis cache enabled."
+        echo "[wordpress] Redis object cache enabled."
+    else
+        echo "[wordpress] WARNING: redis unreachable, object cache not enabled." >&2
     fi
 fi
 
