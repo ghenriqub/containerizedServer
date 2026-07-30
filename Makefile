@@ -28,6 +28,8 @@ SECRETS     := $(SECRETS_DIR)/db_root_password.txt \
                $(SECRETS_DIR)/wp_user_password.txt \
                $(SECRETS_DIR)/redis_password.txt
 
+HOSTS_LINE := 127.0.0.1 $(DOMAIN_NAME) adminer.$(DOMAIN_NAME)
+
 all: check-env dirs secrets hosts up
 
 check-env:
@@ -53,9 +55,9 @@ secrets:
 	@echo "[make] WP admin password -> cat $(SECRETS_DIR)/credentials.txt"
 
 hosts:
-	@grep -q "$(DOMAIN_NAME)" /etc/hosts || \
-		echo "127.0.0.1 $(DOMAIN_NAME) adminer.$(DOMAIN_NAME)" | sudo tee -a /etc/hosts > /dev/null
-	@echo "[make] /etc/hosts OK ($(DOMAIN_NAME))"
+	@grep -qxF "$(HOSTS_LINE)" /etc/hosts || \
+		echo "$(HOSTS_LINE)" | sudo tee -a /etc/hosts > /dev/null
+	@echo "[make] /etc/hosts OK ($(HOSTS_LINE))"
 
 # ---------------------------------------------------------------------------- #
 #  Lifecycle.                                                                  #
