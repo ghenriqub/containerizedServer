@@ -6,15 +6,13 @@
 #    By: ghenriqu <ghenriqu@student.42porto.com>    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/07/31 12:28:20 by ghenriqu          #+#    #+#              #
-#    Updated: 2026/07/31 12:50:41 by ghenriqu         ###   ########.fr        #
+#    Updated: 2026/07/31 14:21:42 by ghenriqu         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 FROM debian:bookworm AS builder
 
 ARG UPTIME_KUMA_VERSION=2.4.0
-
-ARG UPTIME_KUMA_SHA256=sha256:015ebb4df74b72bd8c303bdc41b71e2de8bdc72862ddc2d65db69a92316df835
 
 ARG NODE_MAJOR=22
 
@@ -34,8 +32,6 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
-
-ARG UPTIME_KUMA_VERSION=2.4.0
 
 ARG UPTIME_KUMA_SRC_SHA256=0ad39c4cbe2de5a2dd4869d02a8a4f0398b7b16217b0aeaff98d78cf37500c42
 
