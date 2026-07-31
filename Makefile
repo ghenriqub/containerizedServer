@@ -6,7 +6,7 @@
 #    By: ghenriqu <ghenriqu@student.42porto.com>    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/07/22 22:27:32 by ghenriqu          #+#    #+#              #
-#    Updated: 2026/07/22 22:27:33 by ghenriqu         ###   ########.fr        #
+#    Updated: 2026/07/31 12:43:04 by ghenriqu         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -28,7 +28,7 @@ SECRETS     := $(SECRETS_DIR)/db_root_password.txt \
                $(SECRETS_DIR)/wp_user_password.txt \
                $(SECRETS_DIR)/redis_password.txt
 
-HOSTS_LINE := 127.0.0.1 $(DOMAIN_NAME) adminer.$(DOMAIN_NAME)
+HOSTS_LINE := 127.0.0.1 $(DOMAIN_NAME) adminer.$(DOMAIN_NAME) website.$(DOMAIN_NAME) uptime.$(DOMAIN_NAME)
 
 all: check-env dirs secrets hosts up
 

@@ -122,8 +122,8 @@ services:
       - inception
     volumes:
       - uptime_kuma_data:/app/data
-    ports:
-      - "3001:3001"
+    expose:
+      - "3001"
     
 # ---- Website - showcase estatico -----------------------------------------
   website:
