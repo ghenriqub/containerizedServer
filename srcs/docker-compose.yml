@@ -124,6 +124,19 @@ services:
       - uptime_kuma_data:/app/data
     ports:
       - "3001:3001"
+    
+# ---- Website - showcase estatico -----------------------------------------
+  website:
+    build:
+      context: ./requirements/bonus/website
+    image: website:inception
+    container_name: website
+    profiles: [bonus]
+    restart: always
+    networks:
+      - inception
+    expose:
+      - "8080"
 
 # ============================================================================ #
 #  Network                                                                     #

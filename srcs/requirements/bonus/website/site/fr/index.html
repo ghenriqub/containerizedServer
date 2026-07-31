@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<!-- **************************************************************************** -->
+<!--                                                                              -->
+<!--                                                          :::      ::::::::    -->
+<!--     index.html                                         :+:      :+:    :+:    -->
+<!--                                                      +:+ +:+         +:+      -->
+<!--     By: ghenriqu <ghenriqu@student.42porto.com>    +#+  +:+       +#+         -->
+<!--                                                  +#+#+#+#+#+   +#+            -->
+<!--     Created: 2026/07/31 00:00:00 by ghenriqu          #+#    #+#              -->
+<!--     Updated: 2026/07/31 00:00:00 by ghenriqu         ###   ########.fr        -->
+<!--                                                                              -->
+<!-- **************************************************************************** -->
+
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Inception — manifeste des services</title>
+  <meta name="description" content="Infrastructure conteneurisée : NGINX, WordPress/PHP-FPM et MariaDB derrière un point d'entrée TLS unique.">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="alternate" hreflang="en" href="/">
+  <link rel="alternate" hreflang="pt-PT" href="/pt/">
+  <link rel="alternate" hreflang="fr" href="/fr/">
+  <link rel="alternate" hreflang="x-default" href="/">
+</head>
+<body>
+
+<a class="skip" href="#services">Aller à la liste des services</a>
+
+<div class="sheet">
+
+  <!-- ================================================================== -->
+  <!-- En-tête                                                            -->
+  <!-- ================================================================== -->
+  <header class="head">
+    <div class="head__top">
+      <p class="eyebrow">Manifeste de cargaison <span class="sep">/</span> 42 Porto <span class="sep">/</span> ghenriqu</p>
+      <nav class="langs" aria-label="Langue">
+        <a href="/"    hreflang="en"    lang="en">EN</a>
+        <a href="/pt/" hreflang="pt-PT" lang="pt-PT">PT</a>
+        <a href="/fr/" hreflang="fr"    lang="fr" aria-current="page">FR</a>
+      </nav>
+    </div>
+
+    <h1 class="title">Inception</h1>
+
+    <p class="standfirst">
+      Sept services, chacun scellé dans son propre conteneur, reliés par un
+      réseau privé qui n'existe pas en dehors de cette machine. Un seul port
+      est ouvert sur l'extérieur. Cette page décrit ce qu'il y a à l'intérieur,
+      et pourquoi l'ensemble a été monté ainsi.
+    </p>
+  </header>
+
+  <!-- ================================================================== -->
+  <!-- Coupe transversale : l'élément central de la page.                  -->
+  <!-- Les boîtes imbriquées ne sont pas décoratives — ce sont les vraies  -->
+  <!-- frontières d'isolation : hôte > réseau docker > conteneur.          -->
+  <!-- ================================================================== -->
+  <section class="cut" aria-labelledby="cut-h">
+    <h2 id="cut-h" class="rubric">Coupe transversale</h2>
+
+    <figure class="section-view">
+
+      <div class="ingress" aria-hidden="true">
+        <span class="ingress__tag">443/tcp</span>
+        <span class="ingress__line"></span>
+      </div>
+
+      <div class="bound bound--host">
+        <span class="bound__label">hôte <span class="sep">/</span> machine virtuelle</span>
+
+        <div class="bound bound--net">
+          <span class="bound__label">réseau docker <span class="sep">/</span> inception <span class="sep">/</span> bridge</span>
+
+          <ul class="units">
+            <li class="unit unit--edge">
+              <span class="unit__name">nginx</span>
+              <span class="unit__port">443 &rarr; 8080 &middot; 9000</span>
+            </li>
+            <li class="unit">
+              <span class="unit__name">wordpress</span>
+              <span class="unit__port">:9000</span>
+            </li>
+            <li class="unit">
+              <span class="unit__name">mariadb</span>
+              <span class="unit__port">:3306</span>
+            </li>
+            <li class="unit unit--bonus">
+              <span class="unit__name">redis</span>
+              <span class="unit__port">:6379</span>
+            </li>
+            <li class="unit unit--bonus">
+              <span class="unit__name">adminer</span>
+              <span class="unit__port">:9000</span>
+            </li>
+            <li class="unit unit--bonus unit--self" data-label="vous êtes ici">
+              <span class="unit__name">website</span>
+              <span class="unit__port">:8080</span>
+            </li>
+            <li class="unit unit--bonus">
+              <span class="unit__name">uptime-kuma</span>
+              <span class="unit__port">:3001</span>
+            </li>
+          </ul>
+        </div>
+
+        <p class="bound__foot">
+          volumes nommés <span class="sep">&rarr;</span> /home/ghenriqu/data
+        </p>
+      </div>
+    </figure>
+
+    <p class="caption">
+      Aucun des ports internes n'est publié sur l'hôte. Tout ce qui entre passe
+      d'abord par nginx, qui termine le TLS et décide vers où router. Le
+      conteneur qui sert cette page est signalé.
+    </p>
+  </section>
+
+  <!-- ================================================================== -->
+  <!-- Liste des services : de vraies données tabulaires, donc <table>.    -->
+  <!-- ================================================================== -->
+  <section id="services" aria-labelledby="serv-h">
+    <h2 id="serv-h" class="rubric">Services</h2>
+
+    <table class="manifest">
+      <caption class="sr-only">Services de la stack, port interne et rôle</caption>
+      <thead>
+        <tr>
+          <th scope="col">Service</th>
+          <th scope="col">Port</th>
+          <th scope="col">Rôle</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">nginx</th>
+          <td class="num">443</td>
+          <td>Termine le TLS 1.2/1.3 et route. Seule porte d'entrée.</td>
+        </tr>
+        <tr>
+          <th scope="row">wordpress</th>
+          <td class="num">9000</td>
+          <td>PHP-FPM 8.2. Installé et configuré par WP-CLI au premier démarrage.</td>
+        </tr>
+        <tr>
+          <th scope="row">mariadb</th>
+          <td class="num">3306</td>
+          <td>Base de données WordPress. Le root n'accepte que les connexions locales.</td>
+        </tr>
+        <tr class="is-bonus">
+          <th scope="row">redis</th>
+          <td class="num">6379</td>
+          <td>Cache d'objets WordPress. Protégé par mot de passe.</td>
+        </tr>
+        <tr class="is-bonus">
+          <th scope="row">adminer</th>
+          <td class="num">9000</td>
+          <td>Client web de base de données, derrière le même TLS.</td>
+        </tr>
+        <tr class="is-bonus">
+          <th scope="row">website</th>
+          <td class="num">8080</td>
+          <td>Cette page. HTML et CSS statiques, sans PHP ni JavaScript.</td>
+        </tr>
+        <tr class="is-bonus">
+          <th scope="row">uptime-kuma</th>
+          <td class="num">3001</td>
+          <td>Surveille les autres services et conserve l'historique de disponibilité.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="caption">Toutes les images sont construites à partir de <code>debian:bookworm</code>. Aucune n'est tirée toute faite d'un registry.</p>
+  </section>
+
+  <!-- ================================================================== -->
+  <!-- Choix techniques. Ce sont exactement les quatre comparaisons que le -->
+  <!-- sujet exige dans le README : la page sert aussi à préparer la       -->
+  <!-- soutenance.                                                         -->
+  <!-- ================================================================== -->
+  <section aria-labelledby="dec-h">
+    <h2 id="dec-h" class="rubric">Choix techniques</h2>
+
+    <div class="decisions">
+
+      <article class="decision">
+        <h3 class="decision__q">Machine virtuelle ou conteneur</h3>
+        <p>
+          Une machine virtuelle émule du matériel et démarre son propre noyau ;
+          un conteneur est un ensemble de processus du noyau de l'hôte, isolés
+          par des namespaces et des cgroups. C'est pour cela qu'un conteneur
+          démarre en quelques millisecondes et pèse quelques dizaines de
+          mégaoctets — mais il partage le noyau, donc une évasion de conteneur
+          devient un problème d'hôte. Ici les deux sont utilisés en couches : la
+          VM isole le projet de ma machine, les conteneurs isolent les services
+          les uns des autres.
+        </p>
+      </article>
+
+      <article class="decision">
+        <h3 class="decision__q">Secrets ou variables d'environnement</h3>
+        <p>
+          Une variable d'environnement est visible dans
+          <code>docker inspect</code>, héritée par tous les processus fils et
+          lisible dans <code>/proc/PID/environ</code>. Un secret est monté comme
+          fichier dans <code>/run/secrets</code>, uniquement dans le conteneur
+          qui en a besoin, et n'entre jamais dans une couche d'image. Les mots
+          de passe passent par les secrets ; les noms de bases et les domaines,
+          qui ne sont pas confidentiels, passent par <code>.env</code>.
+        </p>
+      </article>
+
+      <article class="decision">
+        <h3 class="decision__q">Réseau bridge ou réseau de l'hôte</h3>
+        <p>
+          Avec <code>network_mode: host</code>, les conteneurs partageraient la
+          pile réseau de la machine et tous les ports seraient exposés — le 3306
+          de MariaDB compris. Sur un bridge dédié, les services se joignent par
+          nom, résolu par le DNS interne de Docker sur 127.0.0.11, et seul ce
+          qui est explicitement publié sort de l'hôte. Nous publions le 443, et
+          rien d'autre.
+        </p>
+      </article>
+
+      <article class="decision">
+        <h3 class="decision__q">Volume nommé ou bind mount</h3>
+        <p>
+          Un bind mount pointe vers un chemin de l'hôte et emporte avec lui son
+          propriétaire et ses permissions, ce qui finit généralement en conflits
+          d'UID dans le conteneur. Un volume nommé est géré par Docker, possède
+          son propre cycle de vie et survit à <code>docker compose down</code>.
+          Le sujet impose des volumes nommés mais avec les données sous
+          <code>/home/ghenriqu/data</code> : c'est précisément le rôle de
+          <code>driver_opts</code>.
+        </p>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ================================================================== -->
+  <footer class="colophon">
+    <p>
+      <span class="k">Projet</span> Inception <span class="sep">&middot;</span>
+      <span class="k">Cursus</span> 42 Porto <span class="sep">&middot;</span>
+      <span class="k">Login</span> ghenriqu
+    </p>
+    <p class="colophon__note">
+      Servi par le conteneur <code>website</code> sur <code>:8080</code>,
+      à travers nginx sur <code>:443</code>. Sans JavaScript.
+    </p>
+  </footer>
+
+</div>
+</body>
+</html>

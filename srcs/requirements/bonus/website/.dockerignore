@@ -5,21 +5,18 @@
 #                                                     +:+ +:+         +:+      #
 #    By: ghenriqu <ghenriqu@student.42porto.com>    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
-#    Created: 2026/07/22 22:50:55 by ghenriqu          #+#    #+#              #
-#    Updated: 2026/07/31 12:06:36 by ghenriqu         ###   ########.fr        #
+#    Created: 2026/05/10 18:42:07 by ghenriqu          #+#    #+#              #
+#    Updated: 2026/05/16 21:15:09 by ghenriqu         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
-FROM debian:bookworm
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends mariadb-server && \
-    rm -rf /var/lib/apt/lists/*
-    
-COPY conf/50-server.cnf /etc/mysql/mariadb.conf.d/50-server.cnf
-COPY tools/init.sh /usr/local/bin/init.sh
-RUN chmod +x /usr/local/bin/init.sh
+.git
+.gitignore
+.gitkeep
 
-EXPOSE 3306
-
-ENTRYPOINT ["/usr/local/bin/init.sh"]
+*.md
