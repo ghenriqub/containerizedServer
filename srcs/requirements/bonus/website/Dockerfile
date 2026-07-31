@@ -6,7 +6,7 @@
 #    By: ghenriqu <ghenriqu@student.42porto.com>    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/07/31 11:31:29 by ghenriqu          #+#    #+#              #
-#    Updated: 2026/07/31 12:06:17 by ghenriqu         ###   ########.fr        #
+#    Updated: 2026/07/31 12:52:30 by ghenriqu         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -17,6 +17,8 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /run/nginx /var/www/website && \
+    ln -sf /dev/stderr /var/log/nginx/error.log && \
+    ln -sf /dev/stdout /var/log/nginx/access.log && \
     chown -R www-data:www-data /run/nginx /var/lib/nginx
 
 COPY conf/nginx.conf /etc/nginx/nginx.conf

@@ -6,7 +6,7 @@
 #    By: ghenriqu <ghenriqu@student.42porto.com>    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/07/31 12:28:20 by ghenriqu          #+#    #+#              #
-#    Updated: 2026/07/31 12:35:52 by ghenriqu         ###   ########.fr        #
+#    Updated: 2026/07/31 12:50:41 by ghenriqu         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -19,8 +19,7 @@ ARG UPTIME_KUMA_SHA256=sha256:015ebb4df74b72bd8c303bdc41b71e2de8bdc72862ddc2d65d
 ARG NODE_MAJOR=22
 
 ENV PUPPETEER_SKIP_DOWNLOAD=true \
-    PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    NODE_ENV=development
+    PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -36,15 +35,24 @@ RUN apt-get update && \
 
 WORKDIR /build
 
-RUN curl -fsSL -o kuma.tar.gz \
-        "https://github.com/louislam/uptime-kuma/releases/download/2.4.0/dist.tar.gz" && \
-    echo "${UPTIME_KUMA_SHA256}  kuma.tar.gz" | sha256sum -c - && \
-    tar -xzf kuma.tar.gz --strip-components=1 && \
-    rm kuma.tar.gz
+ARG UPTIME_KUMA_VERSION=2.4.0
 
-RUN NODE_OPTIONS=--max-old-space-size=2048 npm ci && \
-    NODE_OPTIONS=--max-old-space-size=2048 npm run build && \
-    npm prune --omit=dev && \
+ARG UPTIME_KUMA_SRC_SHA256=0ad39c4cbe2de5a2dd4869d02a8a4f0398b7b16217b0aeaff98d78cf37500c42
+
+ARG UPTIME_KUMA_DIST_SHA256=015ebb4df74b72bd8c303bdc41b71e2de8bdc72862ddc2d65db69a92316df835
+
+RUN curl -fsSL -o src.tar.gz \
+        "https://github.com/louislam/uptime-kuma/archive/refs/tags/${UPTIME_KUMA_VERSION}.tar.gz" && \
+    echo "${UPTIME_KUMA_SRC_SHA256}  src.tar.gz" | sha256sum -c - && \
+    tar -xzf src.tar.gz --strip-components=1 && \
+    rm src.tar.gz && \
+    curl -fsSL -o dist.tar.gz \
+        "https://github.com/louislam/uptime-kuma/releases/download/${UPTIME_KUMA_VERSION}/dist.tar.gz" && \
+    echo "${UPTIME_KUMA_DIST_SHA256}  dist.tar.gz" | sha256sum -c - && \
+    tar -xzf dist.tar.gz && \
+    rm dist.tar.gz
+
+RUN npm ci --omit=dev && \
     npm cache clean --force && \
     rm -rf /root/.npm /build/.git
 
