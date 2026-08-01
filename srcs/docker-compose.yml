@@ -119,6 +119,7 @@ services:
 
   # ---- Uptime Kuma ----
   uptime-kuma:
+    init: true
     build:
       context: ./requirements/bonus/uptime-kuma
     image: uptime-kuma:inception

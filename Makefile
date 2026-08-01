@@ -6,7 +6,7 @@
 #    By: ghenriqu <ghenriqu@student.42porto.com>    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/07/22 22:27:32 by ghenriqu          #+#    #+#              #
-#    Updated: 2026/08/01 20:08:58 by ghenriqu         ###   ########.fr        #
+#    Updated: 2026/08/01 20:48:56 by ghenriqu         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -41,9 +41,8 @@ DATA_PATH     := $(patsubst %/,%,$(call env_get,DATA_PATH))
 DOMAIN_NAME   := $(call env_get,DOMAIN_NAME)
 WP_ADMIN_USER := $(call env_get,WP_ADMIN_USER)
 
-DATA_DIRS := $(DATA_PATH)/mariadb \
-             $(DATA_PATH)/wordpress \
-             $(DATA_PATH)/uptime-kuma
+DATA_DIRS  := $(DATA_PATH)/mariadb $(DATA_PATH)/wordpress $(DATA_PATH)/uptime-kuma
+CLEAN_DIRS := $(DATA_PATH)/mariadb $(DATA_PATH)/wordpress
 
 SECRETS_DIR := secrets
 SECRETS     := $(SECRETS_DIR)/db_root_password.txt \
@@ -160,13 +159,13 @@ down:
 
 clean: check-env
 	$(DC_ALL) down -v --remove-orphans
-	@sudo rm -rf $(DATA_DIRS)
+	@sudo rm -rf $(CLEAN_DIRS)
 	@echo "[make] volumes and host data under $(DATA_PATH) removed"
 
 fclean: clean
-	$(DC) down --rmi all 2>/dev/null || true
-	@sudo rm -rf $(DATA_PATH)/mariadb $(DATA_PATH)/wordpress
-	@echo "[make] host data removed (uptime-kuma state preserved)."
+	$(DC_ALL) down --rmi all 2>/dev/null || true
+	@sudo rm -rf $(DATA_PATH)/uptime-kuma
+	@echo "[make] images and all host data removed"
 
 re: clean all
 
