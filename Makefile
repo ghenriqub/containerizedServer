@@ -6,7 +6,7 @@
 #    By: ghenriqu <ghenriqu@student.42porto.com>    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/07/22 22:27:32 by ghenriqu          #+#    #+#              #
-#    Updated: 2026/08/01 14:08:35 by ghenriqu         ###   ########.fr        #
+#    Updated: 2026/08/01 14:52:41 by ghenriqu         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -86,7 +86,7 @@ re: clean all
 fclean: check-env clean
 	$(DC) down --rmi all 2>/dev/null || true
 	@sudo rm -rf $(DATA_PATH)/mariadb $(DATA_PATH)/wordpress $(DATA_PATH)/uptime-kuma
-	@echo "[make] dados do host removidos."
+	@echo "[make] data removed at the host."
 
 ps:
 	$(DC) ps
