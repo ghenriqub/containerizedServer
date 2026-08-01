@@ -72,7 +72,11 @@ services:
     depends_on:
       - wordpress
     networks:
-      - inception
+      inception:
+        aliases:
+          - ${DOMAIN_NAME}
+          - adminer.${DOMAIN_NAME}
+          - uptime.${DOMAIN_NAME}
     volumes:
       - wordpress_data:/var/www/html:ro
     ports:
