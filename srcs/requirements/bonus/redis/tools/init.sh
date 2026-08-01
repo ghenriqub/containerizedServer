@@ -7,8 +7,8 @@
 #                                                     +:+ +:+         +:+      #
 #    By: ghenriqu <ghenriqu@student.42porto.com>    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
-#    Created: 2026/07/28 00:00:00 by ghenriqu          #+#    #+#              #
-#    Updated: 2026/07/28 00:00:00 by ghenriqu         ###   ########.fr        #
+#    Created: 2026/08/01 15:40:59 by ghenriqu          #+#    #+#              #
+#    Updated: 2026/08/01 15:41:00 by ghenriqu         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -26,6 +26,8 @@ fi
 mkdir -p /run/redis
 cp "${CONF_TEMPLATE}" "${RUNTIME_CONF}"
 printf 'requirepass %s\n' "$(cat "${SECRET_FILE}")" >> "${RUNTIME_CONF}"
+echo "" >> "${RUNTIME_CONF}"
+echo "requirepass $(cat "${SECRET_FILE}")" >> "${RUNTIME_CONF}"
 
 chown -R redis:redis /run/redis /var/lib/redis
 chmod 700 /run/redis
