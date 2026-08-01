@@ -6,7 +6,7 @@
 #    By: ghenriqu <ghenriqu@student.42porto.com>    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/07/22 22:27:32 by ghenriqu          #+#    #+#              #
-#    Updated: 2026/07/31 14:21:54 by ghenriqu         ###   ########.fr        #
+#    Updated: 2026/08/01 13:58:11 by ghenriqu         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -56,9 +56,19 @@ secrets:
 	@echo "[make] WP admin password -> cat $(SECRETS_DIR)/credentials.txt"
 
 hosts:
-	@grep -qxF "$(HOSTS_LINE)" /etc/hosts || \
-		echo "$(HOSTS_LINE)" | sudo tee -a /etc/hosts > /dev/null
-	@echo "[make] /etc/hosts OK ($(HOSTS_LINE))"
+	@sudo sed -i '/# inception$$/d' /etc/hosts
+	@echo "$(HOSTS_LINE) # inception" | sudo tee -a /etc/hosts > /dev/null
+	@echo "[make] /etc/hosts OK ($(DOMAIN_NAME))"
+
+check-env:
+	@test -f $(ENV_FILE) || { \
+		echo "ERROR: $(ENV_FILE) missing. Run: cp srcs/.env.example $(ENV_FILE)"; exit 1; }
+	@test -n "$(DATA_PATH)" || { \
+		echo "ERROR: DATA_PATH not set in $(ENV_FILE)"; exit 1; }
+	@test -n "$(DOMAIN_NAME)" || { \
+		echo "ERROR: DOMAIN_NAME not set in $(ENV_FILE)"; exit 1; }
+	@case "$(DATA_PATH)" in /?*) ;; *) \
+		echo "ERROR: DATA_PATH must be an absolute path (got: '$(DATA_PATH)')"; exit 1;; esac
 
 # ---------------------------------------------------------------------------- #
 #  Lifecycle.                                                                  #
@@ -77,7 +87,7 @@ clean:
 
 re: clean all
 
-fclean: clean
+fclean: check-env clean
 	$(DC) down --rmi all 2>/dev/null || true
 	@sudo rm -rf $(DATA_PATH)/mariadb $(DATA_PATH)/wordpress $(DATA_PATH)/uptime-kuma
 	@echo "[make] dados do host removidos."
