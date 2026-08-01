@@ -6,7 +6,7 @@
 #    By: ghenriqu <ghenriqu@student.42porto.com>    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/07/22 22:27:32 by ghenriqu          #+#    #+#              #
-#    Updated: 2026/08/01 16:25:56 by ghenriqu         ###   ########.fr        #
+#    Updated: 2026/08/01 19:28:39 by ghenriqu         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -163,15 +163,10 @@ clean: check-env
 	@sudo rm -rf $(DATA_DIRS)
 	@echo "[make] volumes and host data under $(DATA_PATH) removed"
 
-fclean: check-env
-	$(DC_ALL) down -v --rmi all --remove-orphans
-	@sudo rm -rf $(DATA_DIRS)
-	@rm -rf $(SECRETS_DIR)
-	@sudo sed -i '/$(HOSTS_TAG)$$/d' /etc/hosts
-	@docker image prune -f >/dev/null 2>&1 || true
-	@docker builder prune -f >/dev/null 2>&1 || true
-	@echo "[make] full reset done: images, volumes, host data, secrets and hosts entry removed"
-	@echo "[make] base images (debian:bookworm) and other projects were NOT touched - see 'make prune'"
+fclean: clean
+	$(DC) down --rmi all 2>/dev/null || true
+	@sudo rm -rf $(DATA_PATH)/mariadb $(DATA_PATH)/wordpress
+	@echo "[make] host data removed (uptime-kuma state preserved)."
 
 re: clean all
 
