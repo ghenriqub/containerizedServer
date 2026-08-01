@@ -7,8 +7,8 @@
 #                                                     +:+ +:+         +:+      #
 #    By: ghenriqu <ghenriqu@student.42porto.com>    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
-#    Created: 2026/07/31 11:41:57 by ghenriqu          #+#    #+#              #
-#    Updated: 2026/07/31 11:42:08 by ghenriqu         ###   ########.fr        #
+#    Created: 2026/08/01 15:44:08 by ghenriqu          #+#    #+#              #
+#    Updated: 2026/08/01 15:44:09 by ghenriqu         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -26,5 +26,5 @@ nginx -t -q
 
 echo "[website] starting nginx on 0.0.0.0:8080 as www-data (PID 1)..."
 
-exec setpriv --reuid=www-data --regid=www-data --init-groups \
-     nginx -g 'daemon off;'
+exec nginx -g 'daemon off;'
+
