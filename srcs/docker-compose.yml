@@ -77,6 +77,7 @@ services:
           - ${DOMAIN_NAME}
           - adminer.${DOMAIN_NAME}
           - uptime.${DOMAIN_NAME}
+          - website.${DOMAIN_NAME}
     volumes:
       - wordpress_data:/var/www/html:ro
     ports:
