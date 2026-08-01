@@ -1,393 +1,504 @@
 # Inception — Developer Documentation
 
-This document describes how a developer can set up the Inception project environment from scratch, build and launch the infrastructure, manage containers and volumes, and understand where data is stored and how it persists.
+This document describes how to set up the environment from scratch, build and launch the
+infrastructure through the `Makefile` and Docker Compose, manage the containers and
+volumes, and understand where the data lives and how it persists.
+
+The examples use `ghenriqu` as the 42 login, `ghenriqu.42.fr` as the domain and
+`/home/ghenriqu/data` as the data path. All three come from `srcs/.env`; substitute your
+own values.
 
 ---
 
-## Setting up the environment from scratch
+## 1. Setting up the environment from scratch
 
-### 1. Virtual machine
+### 1.1 Virtual machine
 
-The project must run inside a virtual machine. Any hypervisor is acceptable (VirtualBox, VMware, UTM, QEMU/KVM). The guest operating system should be a Linux distribution with Docker support — Debian, Ubuntu, or Fedora are all valid choices.
+The subject requires the project to run inside a virtual machine. Any hypervisor works
+(VirtualBox, VMware, QEMU/KVM, UTM); the guest must be a Linux distribution with Docker
+support — Debian, Ubuntu and Fedora are all fine.
 
-Minimum recommended resources for the VM:
+Suggested resources:
 
-- 2 CPU cores
-- 2 GB RAM (4 GB preferred — Docker builds can be memory-intensive)
-- 20 GB disk space (Docker images, volumes, and build cache consume significant storage)
-- Network adapter configured for NAT or bridged networking (needed for package installation during image builds)
+| Resource | Mandatory stack | With bonus |
+|---|---|---|
+| CPU | 2 cores | 2–4 cores |
+| RAM | 2 GB | 4 GB — the Uptime Kuma build runs `npm ci` and a native compile step, which is the memory-hungry part of the whole project |
+| Disk | 15 GB | 20–25 GB |
+| Network | NAT or bridged — required, since every image installs packages at build time |
 
-### 2. Installing Docker and Docker Compose
+If you intend to reach the site from the physical host rather than from inside the VM, use
+a bridged adapter or forward port 443 (plus 21 and 30000–30009 for FTPS).
 
-On Debian/Ubuntu:
-
-```bash
-# Install prerequisites
-sudo apt-get update
-sudo apt-get install -y ca-certificates curl gnupg
-
-# Add Docker's official GPG key and repository
-sudo install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-sudo chmod a+r /etc/apt/keyrings/docker.gpg
-
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
-  https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-# Install Docker Engine and Compose plugin
-sudo apt-get update
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-
-# Add your user to the docker group (avoids needing sudo for every docker command)
-sudo usermod -aG docker $USER
-
-# IMPORTANT: log out and log back in for the group change to take effect
-# Alternatively, run: newgrp docker
-```
+### 1.2 Docker Engine and the Compose plugin
 
 On Fedora:
 
 ```bash
-# Install from Fedora repositories
-sudo dnf install -y docker docker-compose
-
-# Start and enable the Docker daemon
-sudo systemctl start docker
-sudo systemctl enable docker
-
-# Add your user to the docker group
+sudo dnf -y install dnf-plugins-core
+sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+sudo dnf -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin
+sudo systemctl enable --now docker
 sudo usermod -aG docker $USER
-
-# Log out and back in, or run: newgrp docker
 ```
 
-Verify the installation:
+On Debian / Ubuntu:
 
 ```bash
-docker --version          # Should output Docker version 24.x or higher
-docker compose version    # Should output Docker Compose v2.x
-docker run hello-world    # Should pull and run the test image successfully
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl gnupg
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/debian/gpg | \
+  sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+  https://download.docker.com/linux/debian $(. /etc/os-release && echo $VERSION_CODENAME) stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+sudo usermod -aG docker $USER
 ```
 
-### 3. Configuring the domain name
-
-Add an entry to `/etc/hosts` so that the project domain resolves to the local machine:
+The group change takes effect on the next login — `newgrp docker` applies it to the current
+shell. Verify:
 
 ```bash
-sudo sh -c 'echo "127.0.0.1 ghenriqu.42.fr" >> /etc/hosts'
+docker --version
+docker compose version     # must be v2.x; the Makefile uses the plugin syntax
+docker run --rm hello-world
 ```
 
-Replace `ghenriqu` with your 42 username. Verify with:
+Distribution note: on Fedora, `dnf install docker` installs Moby, not Docker CE. Both work,
+but the Docker CE repository is closer to upstream and keeps `docker compose` in sync with
+the plugin releases. `make` verifies at startup that the daemon answers and that the
+Compose v2 plugin is present, and fails with a clear message otherwise.
 
-```bash
-ping -c 1 ghenriqu.42.fr
-# Expected output: 64 bytes from 127.0.0.1 (127.0.0.1): ...
-```
-
-Edge case on Fedora: if `systemd-resolved` is active and the ping does not resolve, check `/etc/nsswitch.conf` and ensure the `hosts:` line lists `files` before `resolve` or `dns`. This guarantees that `/etc/hosts` is consulted first.
-
-### 4. Creating the directory structure
-
-Clone the repository and verify the structure matches the subject requirements:
+### 1.3 Repository layout
 
 ```
-inception/
-├── Makefile
+containerizedServer/
+├── Makefile                     # the only interface you are expected to use
 ├── README.md
 ├── USER_DOC.md
 ├── DEV_DOC.md
-├── secrets/
-│   ├── credentials.txt          # WordPress admin password
-│   ├── db_password.txt          # MariaDB WordPress user password
-│   └── db_root_password.txt     # MariaDB root password
+├── .gitignore                   # excludes secrets/ and srcs/.env
+├── secrets/                     # generated locally, never committed
 └── srcs/
-    ├── .env                     # Environment variables (non-sensitive)
+    ├── .env.example             # committed template
+    ├── .env                     # your local copy, never committed
     ├── docker-compose.yml
     └── requirements/
         ├── mariadb/
         │   ├── Dockerfile
         │   ├── .dockerignore
-        │   ├── conf/
-        │   │   └── 50-server.cnf
-        │   └── tools/
-        │       └── entrypoint.sh
+        │   ├── conf/50-server.cnf
+        │   └── tools/init.sh
         ├── nginx/
         │   ├── Dockerfile
         │   ├── .dockerignore
-        │   ├── conf/
-        │   │   └── nginx.conf
-        │   └── tools/
-        │       └── entrypoint.sh
+        │   ├── conf/nginx.conf
+        │   └── tools/entrypoint.sh
         ├── wordpress/
         │   ├── Dockerfile
         │   ├── .dockerignore
-        │   ├── conf/
-        │   │   └── www.conf
-        │   └── tools/
-        │       └── entrypoint.sh
-        └──  bonus/
+        │   ├── conf/www.conf
+        │   └── tools/init.sh
+        └── bonus/
+            ├── adminer/         # Dockerfile, conf/{www.conf,99-adminer.ini}, tools/init.sh
+            ├── ftp/             # Dockerfile, conf/vsftpd.conf, tools/init.sh
+            ├── redis/           # Dockerfile, conf/redis.conf, tools/init.sh
+            ├── uptime-kuma/     # Dockerfile, tools/init.sh
+            └── website/         # Dockerfile, conf/nginx.conf, site/, tools/init.sh
 ```
 
-### 5. Creating the secret files
+Every service follows the same shape: `Dockerfile` + `.dockerignore` + `conf/` +
+`tools/`. Keeping that consistent matters more than it looks — it means the build context
+of each image contains only what that image needs, and a reader can find any file without
+searching.
 
-The secret files must be created manually on the machine and must never be committed to git. Each file contains a single password as a plain text string with no trailing newline.
+### 1.4 The environment file
 
 ```bash
-mkdir -p secrets
-
-# Generate strong passwords (or use your own)
-# The openssl rand command produces cryptographically random strings
-openssl rand -base64 24 | tr -d '\n' > secrets/db_root_password.txt
-openssl rand -base64 24 | tr -d '\n' > secrets/db_password.txt
-openssl rand -base64 24 | tr -d '\n' > secrets/credentials.txt
-
-# Restrict file permissions — only the owner can read them
-chmod 600 secrets/*.txt
+cp srcs/.env.example srcs/.env
+$EDITOR srcs/.env
 ```
 
-Why `tr -d '\n'`: some tools and editors append a trailing newline to files. When the entrypoint scripts read these files with `cat`, a trailing newline becomes part of the password string. This causes authentication failures because the password stored in MariaDB does not include the newline, but the password sent by WordPress does. Stripping newlines at creation time prevents this class of bugs entirely.
+| Variable | Meaning |
+|---|---|
+| `DOMAIN_NAME` | Public name of the site; also used for the certificate CN/SAN and the `/etc/hosts` entry |
+| `DATA_PATH` | Absolute host path backing the named volumes — must be `/home/<login>/data` per the subject |
+| `MYSQL_DATABASE` | Name of the WordPress database |
+| `MYSQL_USER` | Database user WordPress connects with (must not be `root`) |
+| `WP_TITLE` | Site title passed to `wp core install` |
+| `WP_ADMIN_USER`, `WP_ADMIN_EMAIL` | WordPress administrator account |
+| `WP_USER`, `WP_USER_EMAIL` | Second WordPress account, created with the `editor` role |
+| `FTP_USER` | System user created inside the FTP image (bonus) |
+| `FTP_PASV_ADDRESS` | Address advertised to FTPS clients for passive data connections (bonus) |
 
-### 6. Configuring the environment file
+No password ever goes in this file. Passwords that need to reach a container go through
+Docker secrets; passwords that only describe configuration do not exist.
 
-Edit `srcs/.env` and replace all placeholder values with your actual configuration:
+`make check-env` validates the file before anything is built:
+
+- `srcs/.env` exists, and `DOMAIN_NAME` and `DATA_PATH` are non-empty
+- `DATA_PATH` is an **absolute** path, and is not one of `/`, `/home`, `/root`, `/usr`,
+  `/var`, `/etc` or `$HOME` — `make clean` and `make fclean` run `sudo rm -rf` on
+  directories derived from it, so an empty or careless value would be catastrophic
+- `WP_ADMIN_USER` does not contain `admin` in any case combination, which the subject
+  forbids
+
+These checks exist because the failure modes they prevent are silent and expensive.
+
+### 1.5 Secrets
+
+The `Makefile` generates them; you do not create them by hand:
 
 ```bash
-# Domain
-DOMAIN_NAME=ghenriqu.42.fr
-
-# MariaDB
-MYSQL_ROOT_PASSWORD_FILE=/secrets/db_root_password
-MYSQL_DATABASE=wordpress
-MYSQL_USER=wp_user
-MYSQL_PASSWORD_FILE=/secrets/db_password
-
-# WordPress
-WP_TITLE=Inception
-WP_ADMIN_USER=boss
-WP_ADMIN_PASSWORD_FILE=/secrets/credentials
-WP_ADMIN_EMAIL=boss@ghenriqu.42.fr
-WP_USER=editor
-WP_USER_EMAIL=editor@ghenriqu.42.fr
-WP_USER_PASSWORD_FILE=/secrets/db_password
+make secrets
 ```
 
-Key constraints to respect:
+For each of the six files it creates the file only if it is missing or empty:
 
-- `WP_ADMIN_USER` must not contain "admin", "Admin", "administrator", or "Administrator" in any form — the subject explicitly prohibits this and evaluators will check.
-- Password values are not stored here — the `_FILE` suffix indicates that the variable holds a path to a Docker secret file, not the password itself.
-- `MYSQL_USER` should not be "root" — root access to the database is restricted to localhost connections only (configured in the MariaDB entrypoint).
+```
+openssl rand -base64 24 | tr -d '\n' > secrets/<name>.txt
+chmod 600 secrets/<name>.txt      # directory is chmod 700
+```
 
-### 7. Creating the host data directories
+Two details matter.
 
-Docker named volumes store their data at `/home/ghenriqu/data` on the host machine. These directories must exist before the first run:
+**`tr -d '\n'`** strips the trailing newline. The entrypoints read these files with `cat`,
+so a trailing newline would become part of the password string. MariaDB would store the
+password *with* the newline while some clients send it *without* — an authentication
+failure that looks like a wrong password and is genuinely unpleasant to debug. Removing the
+newline at creation time eliminates the whole class of bug.
+
+**Existing files are never overwritten.** Secrets are the shared state between the
+`secrets/` directory and the initialised database. If a fresh secret were generated while
+`DATA_PATH` still held a MariaDB data directory created with the old one, WordPress would
+fail to connect on every boot. This is also why `make fclean` removes the data *and* the
+secrets together, and `make clean` removes neither.
+
+Generation happens at runtime, in the `Makefile`, never at build time in a `Dockerfile` — a
+secret baked into an image layer is readable by anyone who obtains the image.
+
+### 1.6 Host directories and `/etc/hosts`
+
+Both are handled by `make`, but they are worth knowing about.
+
+`make dirs` creates `$(DATA_PATH)/mariadb`, `$(DATA_PATH)/wordpress` and
+`$(DATA_PATH)/uptime-kuma`. They must exist *before* Compose starts, because the named
+volumes use `type: none, o: bind`, and the Linux bind mount fails if the source directory
+does not exist.
+
+`make hosts` rewrites the project's line in `/etc/hosts` (needs `sudo`). The line is tagged
+with a trailing `# inception` comment so it can be replaced or deleted precisely rather
+than by matching on the domain:
+
+```
+127.0.0.1 ghenriqu.42.fr adminer.ghenriqu.42.fr website.ghenriqu.42.fr uptime.ghenriqu.42.fr # inception
+```
+
+`make unhosts` removes it. On Fedora, if resolution still fails while `systemd-resolved` is
+active, check that the `hosts:` line in `/etc/nsswitch.conf` lists `files` before `resolve`
+and `dns`.
+
+---
+
+## 2. Building and launching
+
+### 2.1 Targets
+
+| Target | Effect |
+|---|---|
+| `make` | `check-docker check-env dirs secrets hosts up`, then prints `info` |
+| `make bonus` | Same, with the `bonus` profile enabled |
+| `make build` / `make build-bonus` | Build the images without starting anything |
+| `make up` / `make up-bonus` | Start without re-running the host provisioning steps |
+| `make stop` / `make start` / `make restart` | Container lifecycle, nothing else touched |
+| `make down` | Remove the containers; volumes, data and images kept |
+| `make clean` | `down -v` plus `rm -rf` of the host data directories |
+| `make fclean` | `clean` plus images, secrets, `/etc/hosts` entry, dangling images and this project's build cache |
+| `make re` | `clean` then `all` |
+| `make ps` / `make logs` / `make info` | Inspection |
+| `make prune` | Global `docker system prune -af --volumes` — every project on the machine; asks for confirmation |
+| `make legacy-clean` | Removes leftovers from the old `srcs` Compose project name |
+
+Every Compose invocation is `docker compose -p inception -f srcs/docker-compose.yml
+--env-file srcs/.env`, and the teardown targets add `--profile bonus` so they also catch
+bonus containers even when the stack was started without them.
+
+The explicit project name is deliberate. Compose derives the project name from the
+directory containing the file, which here would be `srcs`; that prefix ends up on every
+volume, network and default container name. Pinning it to `inception` makes the names stable
+and readable (`inception_wordpress_data`, `inception_inception`) regardless of what the
+checkout directory is called. `make legacy-clean` exists to clean up resources created
+before that was pinned.
+
+### 2.2 What happens during `make`
+
+1. `check-docker` — the daemon answers and the Compose v2 plugin is installed.
+2. `check-env` — `srcs/.env` is present and sane (see §1.4).
+3. `dirs` — the host data directories exist.
+4. `secrets` — any missing secret file is generated.
+5. `hosts` — the `/etc/hosts` line is refreshed.
+6. `up` — `docker compose up -d --build --remove-orphans`:
+   - each image is built if it does not exist or if its build context changed;
+   - the bridge network `inception` is created;
+   - the named volumes are created, each bind-backed by its host directory;
+   - containers start in dependency order: mariadb → wordpress → nginx;
+   - each entrypoint runs its first-boot logic if needed, then `exec`s its service as PID 1.
+7. `info` — prints the URLs and `docker compose ps`.
+
+A point worth internalising for the defence: `depends_on` controls **start order only**. It
+does not wait for MariaDB to be ready to accept queries. That is why the WordPress
+entrypoint polls with `mariadb-admin ping` in a bounded loop (30 attempts, 2 s apart) before
+running WP-CLI.
+
+### 2.3 Build cache
+
+Docker caches every layer. Changing a file that is `COPY`ed into an image invalidates that
+layer and everything after it; earlier layers are reused. This is why the `apt-get install`
+lines come before the `COPY` lines in every Dockerfile — editing an entrypoint script must
+not force a reinstall of the whole userland.
+
+To force a clean rebuild:
 
 ```bash
-sudo mkdir -p /home/ghenriqu/data/wordpress
-sudo mkdir -p /home/ghenriqu/data/mariadb
-
-# Set ownership to your user so Docker can write to them
-sudo chown -R $USER:$USER /home/ghenriqu/data
+docker compose -p inception -f srcs/docker-compose.yml --env-file srcs/.env build --no-cache
+make up
 ```
 
 ---
 
-## Building and launching the project
+## 3. Managing containers, volumes, networks and images
 
-### The Makefile
-
-The Makefile is the single entry point for all project operations. It wraps `docker compose` commands and ensures consistency.
-
-| Target | Command executed | Effect |
-|--------|-----------------|--------|
-| `make` (default) | `docker compose -f srcs/docker-compose.yml up -d --build` | Builds images (if needed) and starts all containers in detached mode |
-| `make down` | `docker compose -f srcs/docker-compose.yml down` | Stops and removes containers, preserves volumes |
-| `make clean` | `docker compose -f srcs/docker-compose.yml down -v` | Stops containers and removes volumes (destroys all data) |
-| `make re` | `make clean` then `make` | Full rebuild from scratch |
-
-### What happens during `make`
-
-1. Docker Compose reads `srcs/docker-compose.yml` and `srcs/.env`.
-2. For each service (mariadb, wordpress, nginx), Docker builds the image from its Dockerfile if an image does not already exist or if any build context file has changed.
-3. Docker creates the bridge network `inception` (if it does not exist).
-4. Docker creates the two named volumes `wp_data` and `db_data` (if they do not exist), with the `local` driver configured to use `/home/ghenriqu/data/wordpress` and `/home/ghenriqu/data/mariadb` as their backing directories on the host.
-5. Docker starts the containers in dependency order: MariaDB first, then WordPress (which depends on MariaDB), then NGINX (which depends on WordPress).
-6. Each container runs its entrypoint script, which performs first-run initialization if the volume is empty, then `exec`s the main process as PID 1.
-
-### Build cache and rebuilding
-
-Docker caches each layer of the image build. If you change a file that is `COPY`ed into the image (such as an entrypoint script or a configuration file), Docker invalidates that layer and all subsequent layers, and rebuilds them. Layers before the change are served from cache.
-
-To force a complete rebuild without cache (useful when debugging base image issues):
+All commands below assume the project name `inception`. Setting a shell alias makes them
+shorter:
 
 ```bash
-docker compose -f srcs/docker-compose.yml build --no-cache
-docker compose -f srcs/docker-compose.yml up -d
+alias dc='docker compose -p inception -f srcs/docker-compose.yml --env-file srcs/.env'
 ```
+
+### Containers
+
+```bash
+dc ps                       # status
+dc --profile bonus ps       # including bonus services
+dc logs -f nginx            # follow one service
+dc exec mariadb bash        # interactive shell
+dc restart wordpress
+docker stats                # live CPU / memory / network per container
+docker inspect --format '{{.State.Status}} restarts={{.RestartCount}}' mariadb
+```
+
+A `RestartCount` that keeps climbing means the container is crash-looping rather than
+running — the restart policy is hiding a failure. Read the logs before assuming it is
+healthy just because `ps` says `Up`.
+
+Container names are pinned with `container_name`, so `docker exec -it wordpress bash` works
+directly without the Compose prefix.
+
+### Volumes
+
+```bash
+docker volume ls | grep inception
+docker volume inspect inception_wordpress_data
+docker volume inspect inception_mariadb_data --format '{{ .Options.device }}'
+docker volume rm inception_wordpress_data      # containers must be stopped first
+```
+
+`docker volume inspect` shows `"Mountpoint": /var/lib/docker/volumes/...` *and* the
+`device` option pointing at `DATA_PATH`. The device is where the bytes actually are; the
+mountpoint is only the directory Docker bind-mounts onto.
+
+### Network
+
+```bash
+docker network ls | grep inception
+docker network inspect inception_inception
+
+# name resolution between containers
+dc exec wordpress getent hosts mariadb
+dc exec nginx getent hosts wordpress
+```
+
+`getent hosts` is preferable to `ping` here: the images do not ship `iputils-ping`, and
+resolution is what you actually want to test.
+
+### Images
+
+```bash
+docker images | grep inception          # mariadb:inception, wordpress:inception, ...
+dc --profile bonus down --rmi all       # remove the project images
+docker image prune                      # dangling layers
+docker builder prune                    # build cache
+```
+
+Every image is tagged `<service>:inception` — the subject requires the image name to match
+the service name, and an explicit tag avoids `latest`, which is prohibited.
 
 ---
 
-## Managing containers and volumes
+## 4. Data storage and persistence
 
-### Container commands
+### Where the data lives
 
-```bash
-# List all running containers with status, ports, and names
-docker compose -f srcs/docker-compose.yml ps
+| Volume | Mounted at | Host directory | Contents |
+|---|---|---|---|
+| `inception_mariadb_data` | `/var/lib/mysql` | `${DATA_PATH}/mariadb` | InnoDB tablespaces, redo logs, system tables |
+| `inception_wordpress_data` | `/var/www/html` | `${DATA_PATH}/wordpress` | WordPress core, `wp-config.php`, themes, plugins, uploads |
+| `inception_uptime_kuma_data` | `/app/data` | `${DATA_PATH}/uptime-kuma` | Uptime Kuma SQLite database and its own credentials (bonus) |
 
-# View real-time logs for all services
-docker compose -f srcs/docker-compose.yml logs -f
+`wordpress_data` is mounted in three containers: read-write in `wordpress` (PHP-FPM writes
+uploads and plugin files), **read-only** in `nginx` (it only serves static assets), and
+read-write in `ftp` (that is the point of the FTPS bonus).
 
-# View logs for a specific service (nginx, wordpress, or mariadb)
-docker compose -f srcs/docker-compose.yml logs -f mariadb
-
-# Open an interactive shell inside a running container
-docker compose -f srcs/docker-compose.yml exec mariadb bash
-docker compose -f srcs/docker-compose.yml exec wordpress bash
-docker compose -f srcs/docker-compose.yml exec nginx bash
-
-# Restart a single service without affecting others
-docker compose -f srcs/docker-compose.yml restart nginx
-
-# Stop a single service
-docker compose -f srcs/docker-compose.yml stop mariadb
-
-# View resource usage (CPU, memory, network I/O) per container
-docker stats
-```
-
-### Volume commands
-
-```bash
-# List all Docker volumes
-docker volume ls
-
-# Inspect a specific volume (shows mount point, driver, options)
-docker volume inspect srcs_wp_data
-docker volume inspect srcs_db_data
-
-# Remove a specific volume (container must be stopped first)
-docker volume rm srcs_wp_data
-
-# Remove all unused volumes (careful — this is destructive)
-docker volume prune
-```
-
-### Network commands
-
-```bash
-# List all Docker networks
-docker network ls
-
-# Inspect the project network (shows connected containers, IP addresses, subnet)
-docker network inspect srcs_inception
-
-# Verify that containers can resolve each other by service name
-docker compose -f srcs/docker-compose.yml exec wordpress ping -c 1 mariadb
-docker compose -f srcs/docker-compose.yml exec nginx ping -c 1 wordpress
-```
-
-Note: volume and network names are prefixed with the Compose project name (derived from the directory name, typically `srcs_`). If you set `COMPOSE_PROJECT_NAME` in the environment or in the compose file, the prefix changes accordingly.
-
-### Image commands
-
-```bash
-# List all images built by this project
-docker images | egrep "srcs[-_](nginx|wordpress|mariadb)"
-
-# Remove all project images (forces rebuild on next make)
-docker compose -f srcs/docker-compose.yml down --rmi all
-
-# Remove dangling images (leftover layers from previous builds)
-docker image prune
-
-# Full system cleanup — removes all unused images, containers, networks, and build cache
-# WARNING: this affects ALL Docker projects on the machine, not just Inception
-docker system prune -a
-```
-
----
-
-## Data storage and persistence
-
-### Where data lives
-
-Data persists across container lifecycle events (stop, start, restart, remove + recreate) through two Docker named volumes:
-
-| Volume | Container mount point | Host path | Contents |
-|--------|----------------------|-----------|----------|
-| `wp_data` | `/var/www/html` | `/home/ghenriqu/data/wordpress` | WordPress PHP files, themes, plugins, uploaded media (images, documents) |
-| `db_data` | `/var/lib/mysql` | `/home/ghenriqu/data/mariadb` | MariaDB data files (InnoDB tablespace, transaction logs, system tables) |
-
-The NGINX container also mounts the `wp_data` volume at `/var/www/html` in read-only mode. This is necessary because NGINX serves static files (CSS, JS, images) directly from the WordPress file tree without involving PHP-FPM.
-
-### How named volumes work
-
-Docker named volumes are managed by the Docker engine. Unlike bind mounts (which map a host path directly), named volumes are abstracted — Docker controls their lifecycle, and they can be listed, inspected, and backed up with Docker commands.
-
-In this project, the named volumes use the `local` driver with the `bind` mount type and a `device` pointing to the host directory. This satisfies the subject requirement: named volumes (not bind mounts) are used, but their backing storage is at `/home/ghenriqu/data`. The configuration in `docker-compose.yml` looks like:
+### How the named volumes are declared
 
 ```yaml
 volumes:
-  wp_data:
+  wordpress_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /home/ghenriqu/data/wordpress
-  db_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /home/ghenriqu/data/mariadb
+      device: ${DATA_PATH}/wordpress
 ```
+
+This satisfies both constraints of the subject at once: Docker treats these as named
+volumes (they appear in `docker volume ls`, services reference them by name, their lifecycle
+is independent of any container), while the bytes live under `/home/<login>/data` as
+required. Bind mounts declared in a service's `volumes:` list — the `- /host/path:/container/path`
+form — are not used anywhere.
+
+The consequence to remember: `docker compose down -v` removes the *volume definition*, not
+the host directory it is bound to. That asymmetry is exactly why `make clean` follows the
+`down -v` with an explicit `rm -rf` of the data directories, and why the two are documented
+as one operation.
 
 ### What survives what
 
-| Event | Data preserved? | Explanation |
-|-------|----------------|-------------|
-| `docker compose stop` / `start` | Yes | Containers are paused and resumed; volumes are untouched |
-| `docker compose down` | Yes | Containers are removed but volumes persist |
-| `docker compose down -v` | No | The `-v` flag explicitly removes named volumes |
-| `docker kill <container>` | Yes | Container is force-stopped; the restart policy brings it back automatically; volumes are untouched |
-| `docker compose down --rmi all` | Yes (data), No (images) | Volumes persist, but images are deleted and must be rebuilt |
-| Host machine reboot | Yes | Docker daemon restarts containers (due to restart policy) and remounts volumes |
-| VM disk corruption | No | Volumes are stored on the VM's filesystem — if the disk fails, data is lost |
+| Event | Data | Why |
+|---|---|---|
+| `make stop` / `make start` | kept | Containers are paused, not removed |
+| `make down` | kept | Containers removed; volumes untouched |
+| `docker kill <name>` | kept | `restart: always` brings it back; volumes untouched |
+| VM reboot | kept | The Docker daemon restarts the containers and remounts the volumes |
+| `make clean` / `make re` | **lost** | Volumes removed *and* host directories deleted |
+| `make fclean` | **lost** | Same, plus images and secrets |
+| `docker compose down --rmi all` | kept | Images are rebuilt on the next `make`; volumes survive |
+| Loss of the VM disk | **lost** | The volumes live on the VM filesystem — back up outside it |
 
-### Backing up data
+### First boot vs subsequent boots
 
-To back up the WordPress database:
+Each entrypoint detects whether initialisation already happened, so restarting never
+reinstalls anything:
+
+- **MariaDB** checks for `/var/lib/mysql/mysql`. If absent it runs `mariadb-install-db`.
+  It then always writes a small `init.sql` and starts `mariadbd --init-file=...`, which is
+  idempotent by construction: `ALTER USER` for root, `CREATE DATABASE IF NOT EXISTS`,
+  `CREATE USER IF NOT EXISTS` plus `ALTER USER` and `GRANT` for the WordPress user. The
+  init file is written with mode `600` and owned by `mysql`, because it contains the
+  passwords in clear text for the duration of the startup.
+- **WordPress** checks for `/var/www/html/wp-config.php`. If absent it runs `wp core
+  download`, `wp config create`, `wp core install` and `wp user create`. If present it
+  skips straight to PHP-FPM. The Redis block runs on every boot but is conditional on
+  `getent hosts redis` succeeding, so the mandatory stack is unaffected when the bonus
+  profile is off.
+- **NGINX** has no volume-dependent state: the certificate is generated at build time and
+  the entrypoint only verifies that the key and certificate exist before `exec`ing.
+
+### Backup and restore
 
 ```bash
-docker compose -f srcs/docker-compose.yml exec mariadb \
-  mysqldump -u root --password="$(cat secrets/db_root_password.txt)" wordpress \
-  > backup_wordpress_$(date +%Y%m%d).sql
+# database
+docker exec mariadb mariadb-dump -u root -p"$(cat secrets/db_root_password.txt)" \
+  --single-transaction wordpress > backup_db_$(date +%F).sql
+
+# files
+sudo tar -czf backup_wp_$(date +%F).tar.gz -C /home/ghenriqu/data/wordpress .
+
+# restore the database
+docker exec -i mariadb mariadb -u root -p"$(cat secrets/db_root_password.txt)" \
+  wordpress < backup_db_2026-08-01.sql
 ```
 
-To back up WordPress files:
+`--single-transaction` takes a consistent snapshot of the InnoDB tables without locking
+them, so the site keeps serving during the dump.
 
-```bash
-tar -czf backup_wp_files_$(date +%Y%m%d).tar.gz -C /home/ghenriqu/data/wordpress .
-```
+---
 
-To restore a database backup:
+## 5. Adding a service
 
-```bash
-docker compose -f srcs/docker-compose.yml exec -i mariadb \
-  mysql -u root --password="$(cat secrets/db_root_password.txt)" wordpress \
-  < backup_wordpress_20260509.sql
-```
+The bonus services are all built the same way; adding a sixth follows the same recipe:
 
-### First-run initialization vs subsequent runs
+1. Create `srcs/requirements/bonus/<name>/` with `Dockerfile`, `.dockerignore`, `conf/` and
+   `tools/init.sh`. Copy an existing `.dockerignore` — it keeps the build context to what
+   the image actually needs.
+2. Base the image on `debian:bookworm`, install with `--no-install-recommends`, and finish
+   with `rm -rf /var/lib/apt/lists/*` in the same `RUN` so the cache never enters a layer.
+3. Write the entrypoint so it validates its inputs, performs any first-boot work, and ends
+   with `exec`. The service must not daemonise.
+4. Add the service to `srcs/docker-compose.yml` with `profiles: [bonus]`, `restart: always`,
+   `networks: [inception]`, and `expose` rather than `ports` unless the protocol genuinely
+   requires a host port.
+5. If it needs a password, add a secret to the `secrets:` block, list it in the service, and
+   add the filename to `SECRETS` in the `Makefile` so it is generated automatically.
+6. If it needs to be reachable from a browser, add a `server` block to
+   `srcs/requirements/nginx/conf/nginx.conf`, add the subdomain to the certificate's
+   `subjectAltName` in the NGINX `Dockerfile`, and add it to `HOSTS_LINE` in the `Makefile`.
 
-Each entrypoint script checks whether its volume already contains data before performing initialization:
+That last step has a subtlety worth understanding, because it is a likely defence question.
+NGINX resolves upstream names at configuration-load time. If a bonus container is absent,
+`fastcgi_pass adminer:9000;` makes the whole configuration fail to load — which would break
+the mandatory stack. The bonus `server` blocks therefore declare
+`resolver 127.0.0.11 valid=30s ipv6=off;` and pass the upstream through a variable
+(`set $adminer_upstream adminer:9000; fastcgi_pass $adminer_upstream;`). A variable forces
+runtime resolution: NGINX starts regardless, and only that virtual host returns `502` when
+the service is missing.
 
-**MariaDB:** checks if `/var/lib/mysql/mysql` directory exists. If it does not, the entrypoint runs `mysql_install_db` to create the system tables, then starts a temporary `mysqld` instance (without networking) to create the WordPress database and users. If the directory already exists, it skips initialization entirely and goes straight to `exec mysqld`.
+---
 
-**WordPress:** checks if `/var/www/html/wp-config.php` exists. If it does not, the entrypoint downloads WordPress core files using WP-CLI, generates `wp-config.php` from environment variables and secrets, and runs the WordPress installation (creating the admin user, setting the site title, etc.). If the file already exists, it skips all of this and goes straight to `exec php-fpm`.
+## 6. Known constraints and pitfalls
 
-**NGINX:** generates the self-signed TLS certificate at build time (in the Dockerfile) or at startup if it does not exist. No volume-dependent initialization is needed because NGINX's configuration is baked into the image.
+**`server_name` is not templated.** The certificate takes `DOMAIN_NAME` as a build argument,
+but `nginx.conf` contains the domain literally. If you change `DOMAIN_NAME` in `srcs/.env`,
+update the four `server_name` directives too. Without that, requests still reach the first
+`server` block (NGINX's default), so the site appears to work while the bonus subdomains
+quietly fall through to WordPress.
 
-This idempotent design means you can safely restart the infrastructure at any time without triggering a reinstallation or losing data.
+**The certificate needs every subdomain in `subjectAltName`.** Modern browsers ignore the
+CN entirely and validate against the SAN list. A certificate issued only for
+`ghenriqu.42.fr` is rejected outright on `adminer.ghenriqu.42.fr`, with no "proceed anyway"
+option in some browsers.
+
+**The 42 header must not be the first bytes of a shell script.** The kernel reads the first
+two bytes looking for `#!`; a comment block before the shebang produces `exec format
+error`. Every `tools/*.sh` in this repository starts with `#!/bin/bash` and carries the
+header immediately after.
+
+**PHP-FPM must listen on TCP, not a Unix socket.** `listen = 0.0.0.0:9000` in `www.conf`.
+A Unix socket only works between processes sharing a filesystem; NGINX and PHP-FPM are in
+separate containers with separate mount namespaces.
+
+**PHP package names on bookworm.** WP-CLI needs `php8.2-cli` alongside `php8.2-fpm`, and
+the MySQL driver package is `php8.2-mysql` — `php8.2-mysqli` does not exist.
+
+**Everything must run in the foreground.** `nginx -g 'daemon off;'`, `php-fpm8.2 -F`,
+`vsftpd` with `background=NO`, `redis-server` with `daemonize no`. A service that forks into
+the background makes the entrypoint exit and the container die.
+
+**Third-party artefacts are pinned and verified.** Adminer and Uptime Kuma are downloaded at
+a fixed version and checked against a recorded SHA-256. A new upstream release therefore
+*breaks the build on purpose* until you update both the version and the digest — which is
+the intended behaviour, not a bug.
+
+**Uptime Kuma is the heaviest build.** It uses a multi-stage build with Node 22 and a
+native compilation step. Under 2 GB of RAM it can be OOM-killed mid-build; the entrypoint
+detects the resulting incomplete image and fails with an explicit message instead of
+crash-looping.
+
+**FTPS passive mode depends on the client's network position.** `FTP_PASV_ADDRESS` is the
+address the server advertises for data connections. `127.0.0.1` works only from inside the
+VM; from anywhere else it must be the VM's reachable IP, and the range 30000–30009 must be
+open.
