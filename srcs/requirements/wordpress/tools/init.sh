@@ -96,4 +96,6 @@ fi
 
 chown -R www-data:www-data /var/www/html
 
+php-fpm8.2 -t
+
 exec /usr/sbin/php-fpm8.2 -F -O
