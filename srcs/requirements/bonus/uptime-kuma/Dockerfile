@@ -6,7 +6,7 @@
 #    By: ghenriqu <ghenriqu@student.42porto.com>    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/07/31 12:28:20 by ghenriqu          #+#    #+#              #
-#    Updated: 2026/07/31 14:21:42 by ghenriqu         ###   ########.fr        #
+#    Updated: 2026/08/01 21:12:00 by ghenriqu         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -73,6 +73,8 @@ RUN useradd --system --create-home --home-dir /app --shell /usr/sbin/nologin kum
 WORKDIR /app
 
 COPY --from=builder --chown=kuma:kuma /build /app
+COPY --chown=kuma:kuma tools/provision.js  /app/extra/provision.js
+COPY --chown=kuma:kuma conf/monitors.json  /app/extra/monitors.json
 COPY tools/init.sh /usr/local/bin/init.sh
 RUN chmod +x /usr/local/bin/init.sh
 

@@ -6,7 +6,7 @@
 #    By: ghenriqu <ghenriqu@student.42porto.com>    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/07/22 22:27:32 by ghenriqu          #+#    #+#              #
-#    Updated: 2026/08/01 20:48:56 by ghenriqu         ###   ########.fr        #
+#    Updated: 2026/08/01 21:17:46 by ghenriqu         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -37,9 +37,10 @@ DC_ALL := $(DC) --profile bonus
 
 env_get = $(strip $(shell sed -n 's/^$(1)=//p' $(ENV_FILE) 2>/dev/null | tr -d '\r"' | head -n1))
 
-DATA_PATH     := $(patsubst %/,%,$(call env_get,DATA_PATH))
-DOMAIN_NAME   := $(call env_get,DOMAIN_NAME)
-WP_ADMIN_USER := $(call env_get,WP_ADMIN_USER)
+DATA_PATH    	:= $(patsubst %/,%,$(call env_get,DATA_PATH))
+DOMAIN_NAME  	:= $(call env_get,DOMAIN_NAME)
+WP_ADMIN_USER	:= $(call env_get,WP_ADMIN_USER)
+KUMA_ADMIN_USER := $(call env_get,KUMA_ADMIN_USER)
 
 DATA_DIRS  := $(DATA_PATH)/mariadb $(DATA_PATH)/wordpress $(DATA_PATH)/uptime-kuma
 CLEAN_DIRS := $(DATA_PATH)/mariadb $(DATA_PATH)/wordpress
@@ -50,7 +51,8 @@ SECRETS     := $(SECRETS_DIR)/db_root_password.txt \
                $(SECRETS_DIR)/credentials.txt \
                $(SECRETS_DIR)/wp_user_password.txt \
                $(SECRETS_DIR)/redis_password.txt \
-               $(SECRETS_DIR)/ftp_password.txt
+               $(SECRETS_DIR)/ftp_password.txt \
+               $(SECRETS_DIR)/kuma_password.txt
 
 HOSTS_TAG  := \# inception
 HOSTS_LINE := 127.0.0.1 $(DOMAIN_NAME) adminer.$(DOMAIN_NAME) website.$(DOMAIN_NAME) uptime.$(DOMAIN_NAME)
@@ -65,7 +67,7 @@ MAKEFLAGS     += --no-print-directory
 all: check-docker check-env dirs secrets hosts up
 	@$(MAKE) info
 
-bonus: check-docker check-env dirs secrets hosts up-bonus
+bonus: check-docker check-env dirs secrets hosts up-bonus kuma-provision
 	@$(MAKE) info
 
 up:
@@ -108,6 +110,12 @@ secrets:
 		fi; \
 	done
 	@echo "[make] secrets ready (WordPress admin password: cat $(SECRETS_DIR)/credentials.txt)"
+
+kuma-provision:
+	@docker exec \
+		-e DOMAIN_NAME=$(DOMAIN_NAME) \
+		-e KUMA_ADMIN_USER=$(KUMA_ADMIN_USER) \
+		uptime-kuma node /app/extra/provision.js
 
 hosts: check-env
 	@sudo sed -i '/$(HOSTS_TAG)$$/d' /etc/hosts
@@ -160,6 +168,7 @@ down:
 clean: check-env
 	$(DC_ALL) down -v --remove-orphans
 	@sudo rm -rf $(CLEAN_DIRS)
+	@sudo rm -rf $(DATA_PATH)/uptime-kuma
 	@echo "[make] volumes and host data under $(DATA_PATH) removed"
 
 fclean: clean

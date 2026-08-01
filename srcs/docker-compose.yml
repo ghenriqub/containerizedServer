@@ -130,8 +130,10 @@ services:
       - inception
     volumes:
       - ${DATA_PATH}/uptime-kuma:/app/data:z
-    ports:
-      - "3001:3001"
+    secrets:
+      - kuma_password
+    expose:
+      - "3001"  
     environment:
       - UPTIME_KUMA_DB_TYPE=sqlite
 
