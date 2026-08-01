@@ -40,6 +40,6 @@ cp "${TEMPLATE}" "${RUNTIME_CONF}"
 printf 'pasv_address=%s\n' "${FTP_PASV_ADDRESS}" >> "${RUNTIME_CONF}"
 chmod 600 "${RUNTIME_CONF}"
 
-echo "[ftp] user=${FTP_USER} chroot=/var/www pasv=${FTP_PASV_ADDRESS}:30000-30009 (FTPS obrigatorio)"
+echo "[ftp] user=${FTP_USER} chroot=/var/www pasv=${FTP_PASV_ADDRESS}:30000-30009 (FTPS required)"
 
 exec vsftpd "${RUNTIME_CONF}"

@@ -6,7 +6,7 @@
 #    By: ghenriqu <ghenriqu@student.42porto.com>    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/07/31 12:06:58 by ghenriqu          #+#    #+#              #
-#    Updated: 2026/07/31 12:07:00 by ghenriqu         ###   ########.fr        #
+#    Updated: 2026/08/01 16:06:24 by ghenriqu         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -21,7 +21,6 @@ COPY conf/redis.conf /etc/redis/redis.conf
 COPY tools/init.sh   /usr/local/bin/init.sh
 RUN chmod +x /usr/local/bin/init.sh
 
-# Documental: a porta nunca é publicada no host, só é alcançável na rede interna.
 EXPOSE 6379
 
 ENTRYPOINT ["/usr/local/bin/init.sh"]
