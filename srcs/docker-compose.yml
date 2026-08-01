@@ -213,3 +213,5 @@ secrets:
     file: ../secrets/redis_password.txt
   ftp_password:
     file: ../secrets/ftp_password.txt
+  kuma_password:
+    file: ../secrets/kuma_password.txt
