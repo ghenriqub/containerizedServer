@@ -6,7 +6,7 @@
 #    By: ghenriqu <ghenriqu@student.42porto.com>    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/07/22 22:27:32 by ghenriqu          #+#    #+#              #
-#    Updated: 2026/08/01 13:58:11 by ghenriqu         ###   ########.fr        #
+#    Updated: 2026/08/01 14:08:35 by ghenriqu         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -32,10 +32,6 @@ SECRETS     := $(SECRETS_DIR)/db_root_password.txt \
 HOSTS_LINE := 127.0.0.1 $(DOMAIN_NAME) adminer.$(DOMAIN_NAME) website.$(DOMAIN_NAME) uptime.$(DOMAIN_NAME)
 
 all: check-env dirs secrets hosts up
-
-check-env:
-	@test -f $(ENV_FILE) || { \
-		echo "ERROR: $(ENV_FILE) doesn't exist. Check srcs/.env.example."; exit 1; }
 
 # ---------------------------------------------------------------------------- #
 #  Host provisioning                                                           #
