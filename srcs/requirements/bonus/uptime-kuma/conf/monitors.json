@@ -5,48 +5,48 @@
         "type": "http",
         "url": "https://__DOMAIN__",
         "ignoreTls": true,
-        "interval": 60
+        "interval": 30
     },
     {
         "name": "Adminer (HTTPS)",
         "type": "http",
         "url": "https://adminer.__DOMAIN__",
         "ignoreTls": true,
-        "interval": 120
+        "interval": 30
     },
     {
         "name": "Static website (HTTPS)",
         "type": "http",
         "url": "https://website.__DOMAIN__",
         "ignoreTls": true,
-        "interval": 120
+        "interval": 30
     },
     {
         "name": "php-fpm",
         "type": "port",
         "hostname": "wordpress",
         "port": 9000,
-        "interval": 60
+        "interval": 30
     },
     {
         "name": "MariaDB",
         "type": "port",
         "hostname": "mariadb",
         "port": 3306,
-        "interval": 60
+        "interval": 30
     },
     {
         "name": "Redis",
         "type": "port",
         "hostname": "redis",
         "port": 6379,
-        "interval": 60
+        "interval": 30
     },
     {
         "name": "FTP",
         "type": "port",
         "hostname": "ftp",
         "port": 21,
-        "interval": 120
+        "interval": 30
     }
 ]
