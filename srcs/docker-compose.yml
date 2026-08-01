@@ -127,10 +127,10 @@ services:
     networks:
       - inception
     volumes:
-      - uptime_kuma_data:/app/data
-    expose:
-      - "3001"
-    
+      - ${DATA_PATH}/uptime-kuma:/app/data
+    ports:
+      - "3001:3001"
+
 # ---- Website ----
   website:
     build:
