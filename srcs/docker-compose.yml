@@ -127,7 +127,7 @@ services:
     networks:
       - inception
     volumes:
-      - ${DATA_PATH}/uptime-kuma:/app/data
+      - ${DATA_PATH}/uptime-kuma:/app/data:z
     ports:
       - "3001:3001"
 
