@@ -7,7 +7,7 @@
 <!--     By: ghenriqu <ghenriqu@student.42porto.com>    +#+  +:+       +#+         -->
 <!--                                                  +#+#+#+#+#+   +#+            -->
 <!--     Created: 2026/07/31 00:00:00 by ghenriqu          #+#    #+#              -->
-<!--     Updated: 2026/07/31 00:00:00 by ghenriqu         ###   ########.fr        -->
+<!--     Updated: 2026/08/02 16:20:41 by ghenriqu         ###   ########.fr        -->
 <!--                                                                              -->
 <!-- **************************************************************************** -->
 
@@ -45,9 +45,9 @@
     <h1 class="title">Inception</h1>
 
     <p class="standfirst">
-      Sete serviços, cada um selado no seu container, ligados por uma rede
-      privada que não existe fora desta máquina. Há exactamente uma porta
-      virada para o exterior. Esta página descreve o que está lá dentro e
+      Oito serviços, cada um selado no seu container, ligados por uma rede
+      privada que não existe fora desta máquina. Todo o tráfego web entra por
+      uma única porta. Esta página descreve o que está lá dentro e
       porque foi montado assim.
     </p>
   </header>
@@ -99,6 +99,10 @@
               <span class="unit__port">:8080</span>
             </li>
             <li class="unit unit--bonus">
+              <span class="unit__name">ftp</span>
+              <span class="unit__port">:21 &middot; 30000-30009</span>
+            </li>
+            <li class="unit unit--bonus">
               <span class="unit__name">uptime-kuma</span>
               <span class="unit__port">:3001</span>
             </li>
@@ -112,9 +116,10 @@
     </figure>
 
     <p class="caption">
-      Nenhuma das portas internas está publicada no host. Tudo o que entra passa
-      primeiro pelo nginx, que termina o TLS e decide para onde encaminhar.
-      O container que serve esta página está assinalado.
+      Nenhum serviço web publica porta própria: tudo o que chega ao site passa
+      primeiro pelo nginx, que termina o TLS e decide para onde encaminhar. Só o
+      ftp e o uptime-kuma abrem portas próprias no host, o que o subject permite
+      aos serviços bónus. O container que serve esta página está assinalado.
     </p>
   </section>
 
@@ -163,6 +168,11 @@
           <th scope="row">website</th>
           <td class="num">8080</td>
           <td>Esta página. HTML e CSS estáticos, sem PHP e sem JavaScript.</td>
+        </tr>
+        <tr class="is-bonus">
+          <th scope="row">ftp</th>
+          <td class="num">21</td>
+          <td>Acesso FTPS ao volume do WordPress. Ligações em claro são recusadas.</td>
         </tr>
         <tr class="is-bonus">
           <th scope="row">uptime-kuma</th>

@@ -7,7 +7,7 @@
 <!--     By: ghenriqu <ghenriqu@student.42porto.com>    +#+  +:+       +#+         -->
 <!--                                                  +#+#+#+#+#+   +#+            -->
 <!--     Created: 2026/07/31 00:00:00 by ghenriqu          #+#    #+#              -->
-<!--     Updated: 2026/07/31 00:00:00 by ghenriqu         ###   ########.fr        -->
+<!--     Updated: 2026/08/02 16:20:41 by ghenriqu         ###   ########.fr        -->
 <!--                                                                              -->
 <!-- **************************************************************************** -->
 
@@ -45,9 +45,9 @@
     <h1 class="title">Inception</h1>
 
     <p class="standfirst">
-      Sept services, chacun scellé dans son propre conteneur, reliés par un
-      réseau privé qui n'existe pas en dehors de cette machine. Un seul port
-      est ouvert sur l'extérieur. Cette page décrit ce qu'il y a à l'intérieur,
+      Huit services, chacun scellé dans son propre conteneur, reliés par un
+      réseau privé qui n'existe pas en dehors de cette machine. Tout le trafic
+      web entre par un seul port. Cette page décrit ce qu'il y a à l'intérieur,
       et pourquoi l'ensemble a été monté ainsi.
     </p>
   </header>
@@ -99,6 +99,10 @@
               <span class="unit__port">:8080</span>
             </li>
             <li class="unit unit--bonus">
+              <span class="unit__name">ftp</span>
+              <span class="unit__port">:21 &middot; 30000-30009</span>
+            </li>
+            <li class="unit unit--bonus">
               <span class="unit__name">uptime-kuma</span>
               <span class="unit__port">:3001</span>
             </li>
@@ -112,9 +116,11 @@
     </figure>
 
     <p class="caption">
-      Aucun des ports internes n'est publié sur l'hôte. Tout ce qui entre passe
-      d'abord par nginx, qui termine le TLS et décide vers où router. Le
-      conteneur qui sert cette page est signalé.
+      Aucun service web ne publie de port propre : tout ce qui atteint le site
+      passe d'abord par nginx, qui termine le TLS et décide vers où router.
+      Seuls ftp et uptime-kuma ouvrent leurs propres ports sur l'hôte, ce que le
+      sujet autorise pour les services bonus. Le conteneur qui sert cette page
+      est signalé.
     </p>
   </section>
 
@@ -163,6 +169,11 @@
           <th scope="row">website</th>
           <td class="num">8080</td>
           <td>Cette page. HTML et CSS statiques, sans PHP ni JavaScript.</td>
+        </tr>
+        <tr class="is-bonus">
+          <th scope="row">ftp</th>
+          <td class="num">21</td>
+          <td>Accès FTPS au volume WordPress. Les connexions en clair sont refusées.</td>
         </tr>
         <tr class="is-bonus">
           <th scope="row">uptime-kuma</th>

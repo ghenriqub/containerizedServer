@@ -7,7 +7,7 @@
 <!--     By: ghenriqu <ghenriqu@student.42porto.com>    +#+  +:+       +#+         -->
 <!--                                                  +#+#+#+#+#+   +#+            -->
 <!--     Created: 2026/07/31 12:03:25 by ghenriqu          #+#    #+#              -->
-<!--     Updated: 2026/07/31 12:03:33 by ghenriqu         ###   ########.fr        -->
+<!--     Updated: 2026/08/02 16:20:41 by ghenriqu         ###   ########.fr        -->
 <!--                                                                              -->
 <!-- **************************************************************************** -->
 
@@ -45,9 +45,9 @@
     <h1 class="title">Inception</h1>
 
     <p class="standfirst">
-      Seven services, each sealed in its own container, joined by a private
-      network that does not exist outside this machine. Exactly one port faces
-      the outside world. This page describes what is inside, and why it was
+      Eight services, each sealed in its own container, joined by a private
+      network that does not exist outside this machine. All web traffic enters
+      through a single port. This page describes what is inside, and why it was
       assembled this way.
     </p>
   </header>
@@ -99,6 +99,10 @@
               <span class="unit__port">:8080</span>
             </li>
             <li class="unit unit--bonus">
+              <span class="unit__name">ftp</span>
+              <span class="unit__port">:21 &middot; 30000-30009</span>
+            </li>
+            <li class="unit unit--bonus">
               <span class="unit__name">uptime-kuma</span>
               <span class="unit__port">:3001</span>
             </li>
@@ -112,9 +116,11 @@
     </figure>
 
     <p class="caption">
-      None of the internal ports are published on the host. Everything that
-      comes in goes through nginx first, which terminates TLS and decides where
-      to route it. The container serving this page is marked.
+      No web service publishes a port of its own: everything that reaches the
+      site goes through nginx first, which terminates TLS and decides where to
+      route it. Only ftp and uptime-kuma bind their own host ports, which the
+      subject allows for bonus services. The container serving this page is
+      marked.
     </p>
   </section>
 
@@ -163,6 +169,11 @@
           <th scope="row">website</th>
           <td class="num">8080</td>
           <td>This page. Static HTML and CSS, no PHP and no JavaScript.</td>
+        </tr>
+        <tr class="is-bonus">
+          <th scope="row">ftp</th>
+          <td class="num">21</td>
+          <td>FTPS access to the WordPress volume. Cleartext logins are refused.</td>
         </tr>
         <tr class="is-bonus">
           <th scope="row">uptime-kuma</th>
