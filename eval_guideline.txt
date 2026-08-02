@@ -3,9 +3,6 @@
 
 ## BASIC
 
---- check certificate
-docker exec nginx openssl x509 -in /etc/nginx/ssl/nginx.crt -noout 
-
 -- docker commands
 docker ps
 docker ps -a
@@ -18,6 +15,9 @@ docker volume rm <name>
 -- eval commands
 docker exec <container> cat /etc/os-release
 docker compose -f srcs/docker-compose.yml build mariadb
+
+-- network
+docker network inspect inception_inception -f '{{range .Containers}}{{.Name}} {{end}}'
 
 -- test certificate
 openssl s_client -connect ghenriqu.42.fr:443 -tls1_2 </dev/null 2>&1 | grep -E "Protocol|Cipher"
