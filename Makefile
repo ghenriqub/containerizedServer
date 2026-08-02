@@ -6,7 +6,7 @@
 #    By: ghenriqu <ghenriqu@student.42porto.com>    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/07/22 22:27:32 by ghenriqu          #+#    #+#              #
-#    Updated: 2026/08/01 21:30:04 by ghenriqu         ###   ########.fr        #
+#    Updated: 2026/08/02 18:04:17 by ghenriqu         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -40,7 +40,7 @@ env_get = $(strip $(shell sed -n 's/^$(1)=//p' $(ENV_FILE) 2>/dev/null | tr -d '
 DATA_PATH    	:= $(patsubst %/,%,$(call env_get,DATA_PATH))
 DOMAIN_NAME  	:= $(call env_get,DOMAIN_NAME)
 WP_ADMIN_USER	:= $(call env_get,WP_ADMIN_USER)
-KUMA_ADMIN_USER := $(call env_get,KUMA_ADMIN_USER)
+KUMA_ADMIN_USER	:= $(call env_get,KUMA_ADMIN_USER)
 
 DATA_DIRS  := $(DATA_PATH)/mariadb $(DATA_PATH)/wordpress $(DATA_PATH)/uptime-kuma
 CLEAN_DIRS := $(DATA_PATH)/mariadb $(DATA_PATH)/wordpress
@@ -71,7 +71,7 @@ bonus: check-docker check-env dirs secrets hosts up-bonus kuma-provision
 	@$(MAKE) info
 
 up:
-	$(DC) up -d --build --remove-orphans
+	$(DC) up -d --build
 
 up-bonus:
 	$(DC_ALL) up -d --build --remove-orphans
@@ -168,7 +168,6 @@ down:
 clean: check-env
 	$(DC_ALL) down -v --remove-orphans
 	@sudo rm -rf $(CLEAN_DIRS)
-	@sudo rm -rf $(DATA_PATH)/uptime-kuma
 	@echo "[make] volumes and host data under $(DATA_PATH) removed"
 
 fclean: clean
@@ -219,12 +218,7 @@ info:
 	@echo ""
 	@$(DC_ALL) ps
 
-help:
-	@grep -hE '^[a-zA-Z_%-]+:.*?## .*$$' $(MAKEFILE_LIST) \
-		| sort \
-		| awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
-
 .PHONY: all bonus up up-bonus build build-bonus stop start restart \
         dirs secrets hosts unhosts check-docker check-env \
         down clean fclean re legacy-clean prune \
-        ps logs info help
+        ps logs info help kuma-provision
