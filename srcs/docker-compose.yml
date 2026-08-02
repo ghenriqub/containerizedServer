@@ -140,13 +140,13 @@ services:
     restart: always
     networks:
       - inception
-  volumes:
-    uptime_kuma_data:
-      driver: local
-      driver_opts:
-        type: none
-        o: bind
-        device: ${DATA_PATH}/uptime-kuma
+    volumes:
+      uptime_kuma_data:
+        driver: local
+        driver_opts:
+          type: none
+          o: bind
+          device: ${DATA_PATH}/uptime-kuma
     secrets:
       - kuma_password
     expose:
