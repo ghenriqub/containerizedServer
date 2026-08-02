@@ -48,10 +48,14 @@ const DEFAULTS = {
 };
 
 function call(socket, event, ...args) {
+    let timeoutMs = 15000;
+    if (typeof args[args.length - 1] === "number") {
+        timeoutMs = args.pop();
+    }
     return new Promise((resolve, reject) => {
         const timer = setTimeout(
             () => reject(new Error(`timeout waiting for ack on "${event}"`)),
-            15000
+            timeoutMs
         );
         socket.emit(event, ...args, (res) => {
             clearTimeout(timer);
@@ -74,6 +78,18 @@ function waitForConnection(socket, graceMs) {
     });
 }
 
+async function waitUntilReady(socket, budgetMs) {
+    const deadline = Date.now() + budgetMs;
+    while (Date.now() < deadline) {
+        try {
+            return await call(socket, "needSetup", 5000);
+        } catch {
+            console.log("[provision] server still initialising, retrying...");
+        }
+    }
+    throw new Error("server never became ready");
+}
+
 (async () => {
     const socket = io(URL, {
         transports: ["websocket"],
@@ -93,7 +109,9 @@ function waitForConnection(socket, graceMs) {
         await waitForConnection(socket, 120000);
         console.log("[provision] connected");
 
-        if (await call(socket, "needSetup")) {
+        const needSetup = await waitUntilReady(socket, 180000);
+
+        if (needSetup) {
             const res = await call(socket, "setup", ADMIN_USER, PASSWORD);
             if (!res.ok) {
                 throw new Error(`setup rejected: ${res.msg}`);
@@ -112,7 +130,6 @@ function waitForConnection(socket, graceMs) {
             throw new Error(`login failed: ${login.msg || "wrong credentials"}`);
         }
 
-        // Give the monitorList push a moment to arrive before we diff against it.
         await call(socket, "getMonitorList");
         await new Promise((r) => setTimeout(r, 1000));
 
