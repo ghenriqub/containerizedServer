@@ -26,7 +26,7 @@ openssl s_client -connect ghenriqu.42.fr:443 -tls1_2 </dev/null 2>&1 | grep -E "
 curl -k --tls--max 1.1 https://ghenriqu.42.fr
 
 -- mariadb login
-mariadb -u wp_user -p wordpress
+docker exec -it mariadb mariadb -u wp_user -p"$(cat secrets/db_password.txt)" wordpress
 SHOW TABLES
 DESCRIBE wp_comments
 SELECT comment_content FROM wp_comments
