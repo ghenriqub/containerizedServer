@@ -1,7 +1,7 @@
 # **************************************************************************** #
 #                                                                              #
 #                                                         :::      ::::::::    #
-#    Makefile                                           :+:      :+:    :+:    #
+#    docker-compose.yml                                 :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
 #    By: ghenriqu <ghenriqu@student.42porto.com>    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
@@ -20,6 +20,8 @@ services:
   mariadb:
     build:
       context: ./requirements/mariadb
+      provenance: false
+      sbom: false
     image: mariadb:inception
     container_name: mariadb
     restart: always
@@ -40,6 +42,8 @@ services:
   wordpress:
     build:
       context: ./requirements/wordpress
+      provenance: false
+      sbom: false
     image: wordpress:inception
     container_name: wordpress
     restart: always
@@ -64,6 +68,8 @@ services:
   nginx:
     build:
       context: ./requirements/nginx
+      provenance: false
+      sbom: false
       args:
         DOMAIN_NAME: ${DOMAIN_NAME}
     image: nginx:inception
@@ -91,6 +97,8 @@ services:
   redis:
     build:
       context: ./requirements/bonus/redis
+      provenance: false
+      sbom: false
     image: redis:inception
     container_name: redis
     profiles: [bonus]
@@ -106,6 +114,8 @@ services:
   adminer:
     build:
       context: ./requirements/bonus/adminer
+      provenance: false
+      sbom: false
     image: adminer:inception
     container_name: adminer
     profiles: [bonus]
@@ -122,6 +132,8 @@ services:
     init: true
     build:
       context: ./requirements/bonus/uptime-kuma
+      provenance: false
+      sbom: false
     image: uptime-kuma:inception
     container_name: uptime-kuma
     profiles: [bonus]
@@ -129,11 +141,11 @@ services:
     networks:
       - inception
     volumes:
-      - ${DATA_PATH}/uptime-kuma:/app/data:z
+      - uptime_kuma_data:/app/data
     secrets:
       - kuma_password
     expose:
-      - "3001"  
+      - "3001"
     environment:
       - UPTIME_KUMA_DB_TYPE=sqlite
 
@@ -141,6 +153,8 @@ services:
   website:
     build:
       context: ./requirements/bonus/website
+      provenance: false
+      sbom: false
     image: website:inception
     container_name: website
     profiles: [bonus]
@@ -154,6 +168,8 @@ services:
   ftp:
     build:
       context: ./requirements/bonus/ftp
+      provenance: false
+      sbom: false
       args:
         DOMAIN_NAME: ${DOMAIN_NAME}
         FTP_USER: ${FTP_USER}
@@ -161,6 +177,8 @@ services:
     container_name: ftp
     profiles: [bonus]
     restart: always
+    depends_on:
+      - wordpress
     env_file: .env
     networks:
       - inception
@@ -196,6 +214,13 @@ volumes:
       type: none
       o: bind
       device: ${DATA_PATH}/wordpress
+
+  uptime_kuma_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_PATH}/uptime-kuma
 
 # ============================================================================ #
 #  Secrets                                                                     #
