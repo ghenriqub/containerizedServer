@@ -1,0 +1,79 @@
+
+--------------------------------------------------------------------------------
+
+## BASIC
+
+--- check certificate
+docker exec nginx openssl x509 -in /etc/nginx/ssl/nginx.crt -noout 
+
+-- docker commands
+docker ps
+docker ps -a
+docker run -it <name> sh/bash
+docker run -it -v <volName>:<volPath> <containerName> sh/bash
+docker system prune -a --volumes
+docker volume ls
+docker volume rm <name>
+
+-- eval commands
+docker exec <container> cat /etc/os-release
+docker compose -f srcs/docker-compose.yml build mariadb
+
+-- test certificate
+openssl s_client -connect ghenriqu.42.fr:443 -tls1_2 </dev/null 2>&1 | grep -E "Protocol|Cipher"
+
+-- testar tls
+curl -k --tls--max 1.1 https://ghenriqu.42.fr
+
+-- mariadb login
+mariadb -u wp_user -p wordpress
+SHOW TABLES
+DESCRIBE wp_comments
+SELECT comment_content FROM wp_comments
+
+-- what is the PID?
+docker exec nginx cat /proc/1/comm
+
+--------------------------------------------------------------------------------
+
+## change ports
+
+--  nginx
+docker-compose.yml -> nginx > ports "xxx:443"
+make down && make
+
+
+--  worpress
+docker-compose.yml -> wordpress -> expose "xxx"
+Dockerfile -> EXPOSE "xxx"
+www.conf -> "listen = 0.0.0.0:xxx"
+nginx.conf -> fastcgi_pass  wordpress:xxx;
+
+make down
+docker compose -f srcs/docker-compose.yml build wordpress nginx
+make
+
+
+-- mariadb
+docker-compose.yml -> nginx > expose "xxx"
+50-server.cnf -> port = "xxx"
+Dockerfile -> EXPOSE "xxx"
+
+make fclean && make
+
+--------------------------------------------------------------------------------
+
+## BONUS
+---redis
+docker exec -it wordpress wp redis status --allow-root
+docker exec -it redis redis-cli KEYS '*'
+redis-cli FLUSHALL
+redis-cli DBSIZE
+
+---ftp
+ftp 127.0.0.1
+put ftpuser
+put ftp_password
+cd html
+put <file>
+
