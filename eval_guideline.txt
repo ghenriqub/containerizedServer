@@ -27,9 +27,9 @@ curl -k --tls--max 1.1 https://ghenriqu.42.fr
 
 -- mariadb login
 docker exec -it mariadb mariadb -u wp_user -p"$(cat secrets/db_password.txt)" wordpress
-SHOW TABLES
-DESCRIBE wp_comments
-SELECT comment_content FROM wp_comments
+SHOW TABLES;
+DESCRIBE wp_comments;
+SELECT comment_content FROM wp_comments;
 
 -- what is the PID?
 docker exec nginx cat /proc/1/comm
@@ -43,7 +43,7 @@ docker-compose.yml -> nginx > ports "xxx:443"
 make down && make
 
 
---  worpress
+--  wordpress
 docker-compose.yml -> wordpress -> expose "xxx"
 Dockerfile -> EXPOSE "xxx"
 www.conf -> "listen = 0.0.0.0:xxx"
@@ -76,4 +76,3 @@ put ftpuser
 put ftp_password
 cd html
 put <file>
-
