@@ -26,8 +26,6 @@ fi
 mkdir -p /run/redis
 cp "${CONF_TEMPLATE}" "${RUNTIME_CONF}"
 printf 'requirepass %s\n' "$(cat "${SECRET_FILE}")" >> "${RUNTIME_CONF}"
-echo "" >> "${RUNTIME_CONF}"
-echo "requirepass $(cat "${SECRET_FILE}")" >> "${RUNTIME_CONF}"
 
 chown -R redis:redis /run/redis /var/lib/redis
 chmod 700 /run/redis

@@ -191,10 +191,11 @@ This project applies the distinction strictly:
 - `secrets/*.txt` holds every password, generated locally by the `Makefile` with
   `openssl rand`, permissions `600`, and excluded from git through `.gitignore`.
 
-Six secrets are used: `db_root_password`, `db_password`, `credentials` (the WordPress
-administrator password), `wp_user_password`, `redis_password` and `ftp_password`. Every
-entrypoint reads them with `cat /run/secrets/<name>`; none of them is ever passed as an
-environment variable.
+Seven secrets are used: `db_root_password`, `db_password`, `credentials` (the WordPress
+administrator password), `wp_user_password`, `redis_password`, `ftp_password` and
+`kuma_password` (the Uptime Kuma administrator password). Every entrypoint reads them
+directly from the mounted file under `/run/secrets/<name>`; none of them is ever passed
+as an environment variable.
 
 ### Docker Network vs Host Network
 
